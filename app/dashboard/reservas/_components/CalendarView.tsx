@@ -3,7 +3,7 @@ import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import NewBookingModal from './NewBookingModal'
 import { updateBookingStatus } from '@/app/actions/bookings'
-import { getWeekStart, toLocalISO } from './calendarUtils'
+import { getWeekStart, toLocalISO, parseLocalDate } from './calendarUtils'
 
 const DAY_START = 7
 const DAY_END = 21
@@ -298,7 +298,7 @@ export default function CalendarView({
   weekStartISO: string
 }) {
   const router = useRouter()
-  const weekStart = new Date(weekStartISO)
+  const weekStart = parseLocalDate(weekStartISO)
   const days = getWeekDays(weekStart)
   const today = new Date()
 
@@ -337,29 +337,29 @@ export default function CalendarView({
     <>
       {/* ── Header ── */}
       <div className="flex items-center justify-between mb-4 gap-3">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1">
           <button
             onClick={() => goWeek(-1)}
-            className="p-1.5 rounded-lg border border-zinc-200 hover:bg-zinc-100 cursor-pointer transition"
+            className="p-2 rounded-lg text-zinc-500 hover:text-zinc-900 hover:bg-zinc-100 cursor-pointer transition"
             aria-label="Semana anterior"
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
               <polyline points="15 18 9 12 15 6" />
             </svg>
           </button>
-          <span className="text-sm font-medium text-zinc-700 min-w-[160px] text-center">{weekLabel(weekStart)}</span>
           <button
             onClick={() => goWeek(1)}
-            className="p-1.5 rounded-lg border border-zinc-200 hover:bg-zinc-100 cursor-pointer transition"
+            className="p-2 rounded-lg text-zinc-500 hover:text-zinc-900 hover:bg-zinc-100 cursor-pointer transition"
             aria-label="Semana siguiente"
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
               <polyline points="9 18 15 12 9 6" />
             </svg>
           </button>
+          <span className="text-sm font-semibold text-zinc-900 min-w-[150px] text-center">{weekLabel(weekStart)}</span>
           <button
             onClick={() => router.push(`/dashboard/reservas?week=${toLocalISO(getWeekStart(today))}`)}
-            className="hidden sm:block text-xs px-2.5 py-1 rounded-lg border border-zinc-200 text-zinc-600 hover:bg-zinc-100 cursor-pointer transition"
+            className="hidden sm:block text-xs px-3 py-1.5 rounded-lg bg-zinc-100 text-zinc-700 hover:bg-zinc-200 cursor-pointer transition font-medium"
           >
             Hoy
           </button>
@@ -458,10 +458,10 @@ export default function CalendarView({
             {HOURS.map((h) => (
               <div
                 key={h}
-                style={{ top: (h - DAY_START) * PX_PER_HOUR }}
+                style={{ top: (h - DAY_START) * PX_PER_HOUR + 2 }}
                 className="absolute w-full pr-2 flex justify-end"
               >
-                <span className="text-xs text-zinc-400 -translate-y-2">{pad2(h)}:00</span>
+                <span className="text-xs text-zinc-400">{pad2(h)}:00</span>
               </div>
             ))}
           </div>

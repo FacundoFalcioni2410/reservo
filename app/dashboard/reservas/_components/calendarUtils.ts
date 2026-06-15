@@ -1,3 +1,8 @@
+/** Parse a YYYY-MM-DD string as LOCAL midnight (avoids UTC-offset day shift). */
+export function parseLocalDate(iso: string): Date {
+  return new Date(iso + 'T00:00:00')
+}
+
 export function getWeekStart(date: Date): Date {
   const d = new Date(date)
   const day = d.getDay()

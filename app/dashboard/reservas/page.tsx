@@ -2,7 +2,7 @@ import { requireTenantId } from '@/app/lib/dal'
 import { prisma } from '@/lib/prisma'
 import PageHeader from '../_components/PageHeader'
 import CalendarView from './_components/CalendarView'
-import { getWeekStart, toLocalISO } from './_components/calendarUtils'
+import { getWeekStart, toLocalISO, parseLocalDate } from './_components/calendarUtils'
 
 export default async function ReservasPage({
   searchParams,
@@ -12,7 +12,7 @@ export default async function ReservasPage({
   const { tenantId } = await requireTenantId()
   const { week } = await searchParams
 
-  const weekStart = week ? getWeekStart(new Date(week)) : getWeekStart(new Date())
+  const weekStart = week ? getWeekStart(parseLocalDate(week)) : getWeekStart(new Date())
   const weekEnd = new Date(weekStart)
   weekEnd.setDate(weekEnd.getDate() + 7)
 
