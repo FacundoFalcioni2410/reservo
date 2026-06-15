@@ -1,6 +1,7 @@
 'use client'
 import { useState, useTransition, useActionState, useEffect } from 'react'
 import PageHeader from '../../_components/PageHeader'
+import DeleteConfirm from '../../_components/DeleteConfirm'
 import { createBranch, updateBranch, deleteBranch } from '@/app/actions/branches'
 
 type Professional = { id: string; email: string }
@@ -258,22 +259,11 @@ export default function SucursalesClient({
 
                 <div className="flex items-center gap-1 flex-shrink-0">
                   {confirmId === b.id ? (
-                    <>
-                      <span className="text-xs text-zinc-500">¿Eliminar?</span>
-                      <button
-                        onClick={() => handleDelete(b.id)}
-                        disabled={isPending}
-                        className="text-xs px-2.5 py-1 rounded-lg bg-red-600 text-white hover:bg-red-700 disabled:opacity-50 cursor-pointer transition"
-                      >
-                        Sí
-                      </button>
-                      <button
-                        onClick={() => setConfirmId(null)}
-                        className="text-xs px-2.5 py-1 rounded-lg border border-zinc-300 text-zinc-600 hover:bg-zinc-50 cursor-pointer transition"
-                      >
-                        No
-                      </button>
-                    </>
+                    <DeleteConfirm
+                      onConfirm={() => handleDelete(b.id)}
+                      onCancel={() => setConfirmId(null)}
+                      disabled={isPending}
+                    />
                   ) : (
                     <>
                       <button
