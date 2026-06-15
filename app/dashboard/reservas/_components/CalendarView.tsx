@@ -5,11 +5,7 @@ import NewBookingModal from './NewBookingModal'
 import { updateBookingStatus } from '@/app/actions/bookings'
 import { getWeekStart, toLocalISO, parseLocalDate } from './calendarUtils'
 
-const DAY_START = 7
-const DAY_END = 21
 const PX_PER_HOUR = 64
-const HOURS = Array.from({ length: DAY_END - DAY_START }, (_, i) => DAY_START + i)
-const TOTAL_HEIGHT = (DAY_END - DAY_START) * PX_PER_HOUR
 
 const DAYS_ES = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb']
 const MONTHS_ES = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic']
@@ -48,15 +44,12 @@ function isSameDay(a: Date, b: Date) {
 }
 
 function pad2(n: number) { return String(n).padStart(2, '0') }
+function formatHour(h: number) { return `${pad2(h)}:00` }
 
-function formatHour(h: number) {
-  return `${pad2(h)}:00`
-}
-
-function getTop(startISO: string): number {
+function getTop(startISO: string, dayStart: number): number {
   const d = new Date(startISO)
   const hours = d.getHours() + d.getMinutes() / 60
-  return Math.max(0, (hours - DAY_START) * PX_PER_HOUR)
+  return Math.max(0, (hours - dayStart) * PX_PER_HOUR)
 }
 
 function getHeight(startISO: string, endISO: string): number {
@@ -103,8 +96,7 @@ function layoutBookings(bookings: BookingData[]): PositionedBooking[] {
     (a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime()
   )
 
-  // Assign each booking to the first available column
-  const columns: string[][] = [] // columns[c] = list of endTime ISO strings
+  const columns: string[][] = []
   const assigned: { booking: BookingData; col: number }[] = []
 
   for (const booking of sorted) {
@@ -124,7 +116,6 @@ function layoutBookings(bookings: BookingData[]): PositionedBooking[] {
     }
   }
 
-  // For each booking, totalCols = widest overlap group it belongs to
   return assigned.map(({ booking, col }) => {
     let maxCol = col
     for (const other of assigned) {
@@ -136,18 +127,24 @@ function layoutBookings(bookings: BookingData[]): PositionedBooking[] {
   })
 }
 
-const GAP = 2 // px between sub-columns
+const GAP = 2
 
 // ─── Day column ──────────────────────────────────────────────────────────────
 
 function DayColumn({
   day,
   bookings,
+  dayStart,
+  hours,
+  totalHeight,
   onSlotClick,
   onBookingClick,
 }: {
   day: Date
   bookings: BookingData[]
+  dayStart: number
+  hours: number[]
+  totalHeight: number
   onSlotClick: (date: Date, hour: number) => void
   onBookingClick: (b: BookingData) => void
 }) {
@@ -155,22 +152,20 @@ function DayColumn({
   const positioned = layoutBookings(bookings)
 
   return (
-    <div className="relative flex-1 border-l border-zinc-100" style={{ height: TOTAL_HEIGHT }}>
-      {/* Hour lines + click zones */}
-      {HOURS.map((h) => (
+    <div className="relative flex-1 border-l border-zinc-100" style={{ height: totalHeight }}>
+      {hours.map((h) => (
         <div
           key={h}
-          style={{ top: (h - DAY_START) * PX_PER_HOUR, height: PX_PER_HOUR }}
+          style={{ top: (h - dayStart) * PX_PER_HOUR, height: PX_PER_HOUR }}
           className="absolute w-full border-t border-zinc-100 cursor-pointer hover:bg-zinc-50 transition-colors"
           onClick={() => onSlotClick(day, h)}
         />
       ))}
 
-      {/* Bookings */}
       {positioned.map((b) => {
-        const top = getTop(b.startTime)
+        const top = getTop(b.startTime, dayStart)
         const height = getHeight(b.startTime, b.endTime)
-        if (top + height < 0 || top > TOTAL_HEIGHT) return null
+        if (top + height < 0 || top > totalHeight) return null
         const pct = 100 / b.totalCols
         const left = `calc(${b.col * pct}% + ${GAP}px)`
         const right = `calc(${(b.totalCols - b.col - 1) * pct}% + ${GAP}px)`
@@ -192,11 +187,10 @@ function DayColumn({
         )
       })}
 
-      {/* Current time line */}
       {isToday && (() => {
         const now = new Date()
-        const top = (now.getHours() + now.getMinutes() / 60 - DAY_START) * PX_PER_HOUR
-        if (top < 0 || top > TOTAL_HEIGHT) return null
+        const top = (now.getHours() + now.getMinutes() / 60 - dayStart) * PX_PER_HOUR
+        if (top < 0 || top > totalHeight) return null
         return (
           <div style={{ top }} className="absolute left-0 right-0 flex items-center pointer-events-none z-10">
             <div className="w-2 h-2 rounded-full bg-red-500 -ml-1 flex-shrink-0" />
@@ -292,15 +286,22 @@ export default function CalendarView({
   bookings,
   professionals,
   weekStartISO,
+  dayStart,
+  dayEnd,
 }: {
   bookings: BookingData[]
   professionals: Professional[]
   weekStartISO: string
+  dayStart: number
+  dayEnd: number
 }) {
   const router = useRouter()
   const weekStart = parseLocalDate(weekStartISO)
   const days = getWeekDays(weekStart)
   const today = new Date()
+
+  const hours = Array.from({ length: dayEnd - dayStart }, (_, i) => dayStart + i)
+  const totalHeight = (dayEnd - dayStart) * PX_PER_HOUR
 
   const [modal, setModal] = useState<ModalPrefill | null>(null)
   const [detail, setDetail] = useState<BookingData | null>(null)
@@ -318,15 +319,15 @@ export default function CalendarView({
     setModal({
       date: toLocalISO(date),
       startTime: formatHour(hour),
-      endTime: formatHour(Math.min(hour + 1, DAY_END)),
+      endTime: formatHour(Math.min(hour + 1, dayEnd)),
     })
   }
 
   function openNew() {
     setModal({
       date: toLocalISO(today),
-      startTime: formatHour(Math.min(Math.max(today.getHours(), DAY_START), DAY_END - 1)),
-      endTime: formatHour(Math.min(today.getHours() + 1, DAY_END)),
+      startTime: formatHour(Math.min(Math.max(today.getHours(), dayStart), dayEnd - 1)),
+      endTime: formatHour(Math.min(today.getHours() + 1, dayEnd)),
     })
   }
 
@@ -404,7 +405,7 @@ export default function CalendarView({
         <div className="flex flex-col gap-2">
           {bookingsForDay(mobileDay).length === 0 ? (
             <button
-              onClick={() => openSlot(mobileDay, 9)}
+              onClick={() => openSlot(mobileDay, Math.max(dayStart, 9))}
               className="w-full py-10 text-sm text-zinc-400 border-2 border-dashed border-zinc-200 rounded-xl hover:border-zinc-400 transition cursor-pointer"
             >
               Sin reservas · Tocá para agregar
@@ -433,7 +434,6 @@ export default function CalendarView({
 
       {/* ── Desktop: week grid ── */}
       <div className="hidden sm:flex flex-col border border-zinc-200 rounded-xl overflow-hidden bg-white">
-        {/* Day headers */}
         <div className="flex border-b border-zinc-200 bg-zinc-50">
           <div className="w-14 flex-shrink-0" />
           {days.map((day) => {
@@ -451,14 +451,12 @@ export default function CalendarView({
           })}
         </div>
 
-        {/* Time grid */}
         <div className="flex overflow-y-auto" style={{ maxHeight: 600 }}>
-          {/* Hours column */}
-          <div className="w-14 flex-shrink-0 relative" style={{ height: TOTAL_HEIGHT }}>
-            {HOURS.map((h) => (
+          <div className="w-14 flex-shrink-0 relative" style={{ height: totalHeight }}>
+            {hours.map((h) => (
               <div
                 key={h}
-                style={{ top: (h - DAY_START) * PX_PER_HOUR + 2 }}
+                style={{ top: (h - dayStart) * PX_PER_HOUR + 2 }}
                 className="absolute w-full pr-2 flex justify-end"
               >
                 <span className="text-xs text-zinc-400">{pad2(h)}:00</span>
@@ -466,12 +464,14 @@ export default function CalendarView({
             ))}
           </div>
 
-          {/* Day columns */}
           {days.map((day) => (
             <DayColumn
               key={day.toISOString()}
               day={day}
               bookings={bookingsForDay(day)}
+              dayStart={dayStart}
+              hours={hours}
+              totalHeight={totalHeight}
               onSlotClick={openSlot}
               onBookingClick={setDetail}
             />
@@ -479,7 +479,6 @@ export default function CalendarView({
         </div>
       </div>
 
-      {/* ── Modals ── */}
       {modal && (
         <NewBookingModal
           professionals={professionals}
@@ -495,4 +494,3 @@ export default function CalendarView({
     </>
   )
 }
-

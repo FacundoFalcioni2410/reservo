@@ -16,7 +16,7 @@ export default async function ReservasPage({
   const weekEnd = new Date(weekStart)
   weekEnd.setDate(weekEnd.getDate() + 7)
 
-  const [bookings, professionals] = await Promise.all([
+  const [bookings, professionals, tenant] = await Promise.all([
     prisma.booking.findMany({
       where: { tenantId, startTime: { gte: weekStart, lt: weekEnd } },
       select: {
@@ -35,6 +35,10 @@ export default async function ReservasPage({
       where: { tenantId, role: 'professional' },
       select: { id: true, email: true },
     }),
+    prisma.tenant.findUnique({
+      where: { id: tenantId },
+      select: { openTime: true, closeTime: true },
+    }),
   ])
 
   const serializedBookings = bookings.map((b) => ({
@@ -51,6 +55,8 @@ export default async function ReservasPage({
         bookings={serializedBookings}
         professionals={professionals}
         weekStartISO={toLocalISO(weekStart)}
+        dayStart={tenant?.openTime ?? 8}
+        dayEnd={tenant?.closeTime ?? 20}
       />
     </div>
   )

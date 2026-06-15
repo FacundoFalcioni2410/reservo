@@ -26,6 +26,8 @@ model Tenant {
   logoUrl     String?
   phone       String?
   description String?
+  openTime    Int       @default(8)
+  closeTime   Int       @default(20)
   createdAt   DateTime  @default(now())
   users       User[]
   branches    Branch[]
@@ -37,6 +39,8 @@ model Branch {
   name      String
   address   String?
   phone     String?
+  openTime  Int?
+  closeTime Int?
   tenantId  String
   tenant    Tenant    @relation(fields: [tenantId], references: [id])
   bookings  Booking[]
