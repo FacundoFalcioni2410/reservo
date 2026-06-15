@@ -7,9 +7,9 @@ export { decrypt }
 const COOKIE_NAME = 'session'
 const SESSION_DURATION_MS = 7 * 24 * 60 * 60 * 1000
 
-export async function createSession(userId: string, role: string) {
+export async function createSession(userId: string, role: string, tenantId?: string) {
   const expiresAt = new Date(Date.now() + SESSION_DURATION_MS)
-  const token = await encrypt({ userId, role, expiresAt })
+  const token = await encrypt({ userId, role, tenantId, expiresAt })
   const cookieStore = await cookies()
 
   cookieStore.set(COOKIE_NAME, token, {

@@ -1,6 +1,14 @@
 import { z } from 'zod'
 
-export const SignupSchema = z.object({
+export const TenantSignupSchema = z.object({
+  tenantName: z.string().min(2, { error: 'El nombre debe tener al menos 2 caracteres.' }).trim(),
+  tenantSlug: z
+    .string()
+    .min(2, { error: 'El slug debe tener al menos 2 caracteres.' })
+    .regex(/^[a-z0-9-]+$/, { error: 'Solo letras minúsculas, números y guiones.' })
+    .trim(),
+  tenantPhone: z.string().optional(),
+  tenantDescription: z.string().optional(),
   email: z.email({ error: 'Ingresá un email válido.' }).trim(),
   password: z
     .string()
@@ -18,6 +26,10 @@ export const LoginSchema = z.object({
 export type FormState =
   | {
       errors?: {
+        tenantName?: string[]
+        tenantSlug?: string[]
+        tenantPhone?: string[]
+        tenantDescription?: string[]
         email?: string[]
         password?: string[]
       }
@@ -28,5 +40,6 @@ export type FormState =
 export type SessionPayload = {
   userId: string
   role: string
+  tenantId?: string
   expiresAt: Date
 }
