@@ -93,4 +93,19 @@ export async function createPublicBooking(data: {
       status: 'pending',
     },
   })
+
+  // Register client user if the email doesn't exist yet in the system
+  if (data.clientEmail) {
+    const exists = await prisma.user.findUnique({ where: { email: data.clientEmail } })
+    if (!exists) {
+      await prisma.user.create({
+        data: {
+          email: data.clientEmail,
+          role: 'client',
+          tenantId: data.tenantId,
+          passwordHash: null,
+        },
+      })
+    }
+  }
 }

@@ -143,6 +143,10 @@ export default function BookingFlow({
     ? professionals.filter((p) => p.serviceIds.includes(serviceId))
     : professionals
 
+  // Derived display info (needed before useEffect)
+  const selectedService = services.find((s) => s.id === serviceId)
+  const selectedProfessional = professionals.find((p) => p.id === professionalId)
+
   // Duration from selected service (or default 60 min)
   const activeDuration = selectedService?.duration ?? 60
 
@@ -240,11 +244,6 @@ export default function BookingFlow({
       }
     })
   }
-
-  // ── Derived display info ─────────────────────────────────────────────────────
-
-  const selectedService = services.find((s) => s.id === serviceId)
-  const selectedProfessional = professionals.find((p) => p.id === professionalId)
 
   // ── Render ───────────────────────────────────────────────────────────────────
 
@@ -467,7 +466,7 @@ export default function BookingFlow({
               {[
                 { label: 'Nombre', required: true, value: clientName, onChange: setClientName, type: 'text', placeholder: 'Tu nombre' },
                 { label: 'Teléfono', required: false, value: clientPhone, onChange: setClientPhone, type: 'tel', placeholder: '+54 11 1234-5678' },
-                { label: 'Email', required: false, value: clientEmail, onChange: setClientEmail, type: 'email', placeholder: 'tu@email.com' },
+                { label: 'Email', required: true, value: clientEmail, onChange: setClientEmail, type: 'email', placeholder: 'tu@email.com' },
               ].map(({ label, required, value, onChange, type, placeholder }) => (
                 <div key={label} className="flex flex-col gap-1">
                   <label className="text-sm font-medium text-zinc-700">
@@ -487,7 +486,7 @@ export default function BookingFlow({
 
               <button
                 onClick={confirm}
-                disabled={!clientName.trim() || isPending}
+                disabled={!clientName.trim() || !clientEmail.trim() || isPending}
                 className="mt-1 w-full rounded-lg bg-zinc-900 px-4 py-3 text-sm font-semibold text-white hover:bg-zinc-700 disabled:opacity-50 cursor-pointer transition"
               >
                 {isPending ? 'Confirmando…' : 'Confirmar reserva'}
