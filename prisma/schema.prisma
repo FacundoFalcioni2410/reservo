@@ -71,6 +71,7 @@ model Service {
   description   String?
   price         Decimal?
   imageUrl      String?
+  duration      Int       @default(60)
   tenantId      String
   tenant        Tenant    @relation(fields: [tenantId], references: [id])
   professionals User[]    @relation("ProfessionalServices")

@@ -18,11 +18,12 @@ export async function createService(state: ServiceState, formData: FormData): Pr
   const description = (formData.get('description') as string)?.trim() || null
   const imageUrl = (formData.get('imageUrl') as string)?.trim() || null
   const price = parsePrice(formData.get('price'))
+  const duration = parseInt(formData.get('duration') as string, 10) || 60
 
   if (!name) return { errors: { name: ['El nombre es obligatorio.'] } }
 
   await prisma.service.create({
-    data: { name, description, imageUrl, price, tenantId },
+    data: { name, description, imageUrl, price, duration, tenantId },
   })
 
   revalidatePath('/dashboard/servicios')
@@ -39,12 +40,13 @@ export async function updateService(state: ServiceState, formData: FormData): Pr
   const description = (formData.get('description') as string)?.trim() || null
   const imageUrl = (formData.get('imageUrl') as string)?.trim() || null
   const price = parsePrice(formData.get('price'))
+  const duration = parseInt(formData.get('duration') as string, 10) || 60
 
   if (!name) return { errors: { name: ['El nombre es obligatorio.'] } }
 
   await prisma.service.updateMany({
     where: { id, tenantId },
-    data: { name, description, imageUrl, price },
+    data: { name, description, imageUrl, price, duration },
   })
 
   revalidatePath('/dashboard/servicios')

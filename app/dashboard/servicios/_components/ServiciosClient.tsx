@@ -4,12 +4,20 @@ import PageHeader from '../../_components/PageHeader'
 import DeleteConfirm from '../../_components/DeleteConfirm'
 import { createService, updateService, deleteService } from '@/app/actions/services'
 
+function formatDuration(min: number) {
+  if (min < 60) return `${min} min`
+  const h = Math.floor(min / 60)
+  const m = min % 60
+  return m ? `${h} h ${m} min` : `${h} hora${h > 1 ? 's' : ''}`
+}
+
 type Service = {
   id: string
   name: string
   description: string | null
   price: number | null
   imageUrl: string | null
+  duration: number
 }
 
 const INPUT_CLASS =
@@ -20,6 +28,10 @@ const INPUT_CLASS =
 function ServiceModal({ service, onClose }: { service?: Service; onClose: () => void }) {
   const action = service ? updateService : createService
   const [state, formAction, pending] = useActionState(action, undefined)
+
+  const initDuration = service?.duration ?? 60
+  const [durationHours, setDurationHours] = useState(Math.floor(initDuration / 60))
+  const [durationMins, setDurationMins] = useState(initDuration % 60)
 
   useEffect(() => {
     if (state?.success) onClose()
@@ -83,6 +95,40 @@ function ServiceModal({ service, onClose }: { service?: Service; onClose: () => 
                 className={`${INPUT_CLASS} pl-7`}
               />
             </div>
+          </div>
+
+          <div className="flex flex-col gap-1">
+            <label className="text-sm font-medium text-zinc-700">Duración</label>
+            <input type="hidden" name="duration" value={durationHours * 60 + durationMins} />
+            <div className="grid grid-cols-2 gap-2">
+              <div className="flex flex-col gap-1">
+                <label className="text-xs text-zinc-500">Horas</label>
+                <select
+                  value={durationHours}
+                  onChange={(e) => setDurationHours(Number(e.target.value))}
+                  className={INPUT_CLASS}
+                >
+                  {Array.from({ length: 10 }, (_, i) => (
+                    <option key={i} value={i}>{i}h</option>
+                  ))}
+                </select>
+              </div>
+              <div className="flex flex-col gap-1">
+                <label className="text-xs text-zinc-500">Minutos</label>
+                <select
+                  value={durationMins}
+                  onChange={(e) => setDurationMins(Number(e.target.value))}
+                  className={INPUT_CLASS}
+                >
+                  {[0, 15, 30, 45].map((m) => (
+                    <option key={m} value={m}>{m} min</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+            {durationHours === 0 && durationMins === 0 && (
+              <p className="text-xs text-red-500">La duración debe ser mayor a 0.</p>
+            )}
           </div>
 
           <div className="flex flex-col gap-1">
@@ -184,9 +230,17 @@ export default function ServiciosClient({ services }: { services: Service[] }) {
                       {s.description && (
                         <p className="text-xs text-zinc-500 mt-0.5 line-clamp-2">{s.description}</p>
                       )}
-                      {s.price !== null && (
-                        <p className="text-sm font-medium text-zinc-700 mt-1">{formatPrice(s.price)}</p>
-                      )}
+                      <div className="flex items-center gap-2 mt-1 flex-wrap">
+                        {s.price !== null && (
+                          <span className="text-sm font-medium text-zinc-700">{formatPrice(s.price)}</span>
+                        )}
+                        <span className="text-xs text-zinc-400 flex items-center gap-0.5">
+                          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+                          </svg>
+                          {formatDuration(s.duration)}
+                        </span>
+                      </div>
                     </div>
 
                     <div className="flex items-center gap-1 flex-shrink-0">

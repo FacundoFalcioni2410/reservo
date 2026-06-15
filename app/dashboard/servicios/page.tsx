@@ -7,13 +7,14 @@ export default async function ServiciosPage() {
 
   const services = await prisma.service.findMany({
     where: { tenantId },
-    select: { id: true, name: true, description: true, price: true, imageUrl: true },
+    select: { id: true, name: true, description: true, price: true, imageUrl: true, duration: true },
     orderBy: { createdAt: 'asc' },
   })
 
   const serialized = services.map((s) => ({
     ...s,
     price: s.price !== null ? Number(s.price) : null,
+    duration: s.duration,
   }))
 
   return (
