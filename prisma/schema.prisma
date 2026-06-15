@@ -12,34 +12,63 @@ enum Role {
   client
 }
 
+enum BookingStatus {
+  pending
+  confirmed
+  cancelled
+  completed
+}
+
 model Tenant {
-  id          String   @id @default(cuid())
+  id          String    @id @default(cuid())
   name        String
-  slug        String   @unique
+  slug        String    @unique
   logoUrl     String?
   phone       String?
   description String?
-  createdAt   DateTime @default(now())
+  createdAt   DateTime  @default(now())
   users       User[]
   branches    Branch[]
+  bookings    Booking[]
 }
 
 model Branch {
-  id        String   @id @default(cuid())
+  id        String    @id @default(cuid())
   name      String
   address   String?
   phone     String?
   tenantId  String
-  tenant    Tenant   @relation(fields: [tenantId], references: [id])
-  createdAt DateTime @default(now())
+  tenant    Tenant    @relation(fields: [tenantId], references: [id])
+  bookings  Booking[]
+  createdAt DateTime  @default(now())
 }
 
 model User {
-  id           String   @id @default(cuid())
-  email        String   @unique
+  id           String    @id @default(cuid())
+  email        String    @unique
   passwordHash String
-  role         Role     @default(client)
+  role         Role      @default(client)
   tenantId     String?
-  tenant       Tenant?  @relation(fields: [tenantId], references: [id])
-  createdAt    DateTime @default(now())
+  tenant       Tenant?   @relation(fields: [tenantId], references: [id])
+  bookings     Booking[] @relation("ProfessionalBookings")
+  createdAt    DateTime  @default(now())
+}
+
+model Booking {
+  id             String        @id @default(cuid())
+  tenantId       String
+  tenant         Tenant        @relation(fields: [tenantId], references: [id])
+  branchId       String?
+  branch         Branch?       @relation(fields: [branchId], references: [id])
+  professionalId String?
+  professional   User?         @relation("ProfessionalBookings", fields: [professionalId], references: [id])
+  clientName     String
+  clientPhone    String?
+  clientEmail    String?
+  serviceName    String?
+  startTime      DateTime
+  endTime        DateTime
+  status         BookingStatus @default(pending)
+  notes          String?
+  createdAt      DateTime      @default(now())
 }

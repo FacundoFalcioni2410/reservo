@@ -1,0 +1,60 @@
+'use server'
+import { revalidatePath } from 'next/cache'
+import { requireTenantId } from '@/app/lib/dal'
+import { prisma } from '@/lib/prisma'
+
+type BookingState = { error?: string; success?: boolean } | undefined
+
+export async function createBooking(state: BookingState, formData: FormData): Promise<BookingState> {
+  const { tenantId } = await requireTenantId()
+
+  const clientName = (formData.get('clientName') as string)?.trim()
+  const clientPhone = (formData.get('clientPhone') as string)?.trim() || null
+  const serviceName = (formData.get('serviceName') as string)?.trim() || null
+  const professionalId = (formData.get('professionalId') as string) || null
+  const notes = (formData.get('notes') as string)?.trim() || null
+  const date = formData.get('date') as string
+  const startTimeStr = formData.get('startTime') as string
+  const endTimeStr = formData.get('endTime') as string
+
+  if (!clientName || !date || !startTimeStr || !endTimeStr) {
+    return { error: 'Completá los campos requeridos.' }
+  }
+
+  const startTime = new Date(`${date}T${startTimeStr}`)
+  const endTime = new Date(`${date}T${endTimeStr}`)
+
+  if (isNaN(startTime.getTime()) || isNaN(endTime.getTime())) {
+    return { error: 'Fecha u hora inválida.' }
+  }
+  if (endTime <= startTime) {
+    return { error: 'La hora de fin debe ser posterior al inicio.' }
+  }
+
+  await prisma.booking.create({
+    data: {
+      tenantId,
+      clientName,
+      clientPhone,
+      serviceName,
+      professionalId,
+      startTime,
+      endTime,
+      notes,
+    },
+  })
+
+  revalidatePath('/dashboard/reservas')
+  return { success: true }
+}
+
+export async function updateBookingStatus(id: string, status: 'confirmed' | 'cancelled' | 'completed') {
+  const { tenantId } = await requireTenantId()
+
+  await prisma.booking.updateMany({
+    where: { id, tenantId },
+    data: { status },
+  })
+
+  revalidatePath('/dashboard/reservas')
+}

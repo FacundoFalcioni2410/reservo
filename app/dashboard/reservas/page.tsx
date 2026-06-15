@@ -1,12 +1,57 @@
+import { requireTenantId } from '@/app/lib/dal'
+import { prisma } from '@/lib/prisma'
 import PageHeader from '../_components/PageHeader'
+import CalendarView from './_components/CalendarView'
+import { getWeekStart, toLocalISO } from './_components/calendarUtils'
 
-export default function ReservasPage() {
+export default async function ReservasPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ week?: string }>
+}) {
+  const { tenantId } = await requireTenantId()
+  const { week } = await searchParams
+
+  const weekStart = week ? getWeekStart(new Date(week)) : getWeekStart(new Date())
+  const weekEnd = new Date(weekStart)
+  weekEnd.setDate(weekEnd.getDate() + 7)
+
+  const [bookings, professionals] = await Promise.all([
+    prisma.booking.findMany({
+      where: { tenantId, startTime: { gte: weekStart, lt: weekEnd } },
+      select: {
+        id: true,
+        clientName: true,
+        clientPhone: true,
+        serviceName: true,
+        startTime: true,
+        endTime: true,
+        status: true,
+        professionalId: true,
+      },
+      orderBy: { startTime: 'asc' },
+    }),
+    prisma.user.findMany({
+      where: { tenantId, role: 'professional' },
+      select: { id: true, email: true },
+    }),
+  ])
+
+  const serializedBookings = bookings.map((b) => ({
+    ...b,
+    startTime: b.startTime.toISOString(),
+    endTime: b.endTime.toISOString(),
+    status: b.status as string,
+  }))
+
   return (
-    <div className="px-4 py-6 sm:px-8 sm:py-8 max-w-5xl mx-auto">
-      <PageHeader title="Reservas" description="Gestión de turnos y citas" />
-      <div className="bg-white rounded-xl border border-zinc-200 px-6 py-12 text-center text-zinc-400 text-sm">
-        Próximamente
-      </div>
+    <div className="px-4 py-6 sm:px-6 sm:py-6 max-w-full">
+      <PageHeader title="Reservas" description="Turnos y citas del negocio" />
+      <CalendarView
+        bookings={serializedBookings}
+        professionals={professionals}
+        weekStartISO={toLocalISO(weekStart)}
+      />
     </div>
   )
 }
