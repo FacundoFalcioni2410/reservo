@@ -79,6 +79,10 @@ export async function login(state: FormState, formData: FormData): Promise<FormS
     return { message: 'Email o contraseña incorrectos.' }
   }
 
+  if (!user.passwordHash) {
+    return { message: 'Aún no configuraste tu contraseña. Revisá tu email con el link de invitación.' }
+  }
+
   const valid = await bcrypt.compare(password, user.passwordHash)
   if (!valid) {
     return { message: 'Email o contraseña incorrectos.' }

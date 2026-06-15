@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { decrypt } from '@/app/lib/jwt'
 
 const protectedRoutes = ['/dashboard']
-const publicRoutes = ['/login', '/signup', '/']
+const publicRoutes = ['/login', '/signup', '/invite', '/']
 
 export default async function proxy(req: NextRequest) {
   const path = req.nextUrl.pathname

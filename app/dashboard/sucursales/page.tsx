@@ -1,12 +1,51 @@
-import PageHeader from '../_components/PageHeader'
+import { requireTenantId } from '@/app/lib/dal'
+import { prisma } from '@/lib/prisma'
+import { notFound } from 'next/navigation'
+import SucursalesClient from './_components/SucursalesClient'
 
-export default function SucursalesPage() {
+export default async function SucursalesPage() {
+  const { tenantId } = await requireTenantId()
+
+  const [branches, tenant, allServices] = await Promise.all([
+    prisma.branch.findMany({
+      where: { tenantId },
+      select: {
+        id: true,
+        name: true,
+        address: true,
+        phone: true,
+        openTime: true,
+        closeTime: true,
+        professionals: { select: { id: true, email: true } },
+        services: { select: { id: true } },
+      },
+      orderBy: { createdAt: 'asc' },
+    }),
+    prisma.tenant.findUnique({
+      where: { id: tenantId },
+      select: { openTime: true, closeTime: true },
+    }),
+    prisma.service.findMany({
+      where: { tenantId },
+      select: { id: true, name: true },
+      orderBy: { createdAt: 'asc' },
+    }),
+  ])
+
+  if (!tenant) notFound()
+
+  const serializedBranches = branches.map((b) => ({
+    ...b,
+    serviceIds: b.services.map((s) => s.id),
+  }))
+
   return (
-    <div className="px-4 py-6 sm:px-8 sm:py-8 max-w-5xl mx-auto">
-      <PageHeader title="Sucursales" description="Ubicaciones y locales del negocio" />
-      <div className="bg-white rounded-xl border border-zinc-200 px-6 py-12 text-center text-zinc-400 text-sm">
-        Próximamente
-      </div>
+    <div className="px-4 py-6 sm:px-8 sm:py-8 max-w-2xl mx-auto">
+      <SucursalesClient
+        branches={serializedBranches}
+        tenantHours={{ openTime: tenant.openTime, closeTime: tenant.closeTime }}
+        allServices={allServices}
+      />
     </div>
   )
 }

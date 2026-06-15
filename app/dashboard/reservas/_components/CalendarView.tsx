@@ -29,6 +29,7 @@ type BookingData = {
 }
 
 type Professional = { id: string; email: string }
+type Branch = { id: string; name: string }
 type ModalPrefill = { date: string; startTime: string; endTime: string }
 
 function getWeekDays(weekStart: Date) {
@@ -288,12 +289,16 @@ export default function CalendarView({
   weekStartISO,
   dayStart,
   dayEnd,
+  branches,
+  selectedBranchId,
 }: {
   bookings: BookingData[]
   professionals: Professional[]
   weekStartISO: string
   dayStart: number
   dayEnd: number
+  branches: Branch[]
+  selectedBranchId: string | null
 }) {
   const router = useRouter()
   const weekStart = parseLocalDate(weekStartISO)
@@ -310,9 +315,23 @@ export default function CalendarView({
     return todayInWeek ?? days[0]
   })
 
+  function buildUrl(weekDate: Date, branchId: string | null) {
+    const params = new URLSearchParams()
+    params.set('week', toLocalISO(weekDate))
+    if (branchId) params.set('branch', branchId)
+    return `/dashboard/reservas?${params.toString()}`
+  }
+
   function goWeek(offset: number) {
-    const d = addDays(weekStart, offset * 7)
-    router.push(`/dashboard/reservas?week=${toLocalISO(d)}`)
+    router.push(buildUrl(addDays(weekStart, offset * 7), selectedBranchId))
+  }
+
+  function goToday() {
+    router.push(buildUrl(getWeekStart(today), selectedBranchId))
+  }
+
+  function selectBranch(branchId: string | null) {
+    router.push(buildUrl(weekStart, branchId))
   }
 
   function openSlot(date: Date, hour: number) {
@@ -337,7 +356,8 @@ export default function CalendarView({
   return (
     <>
       {/* ── Header ── */}
-      <div className="flex items-center justify-between mb-4 gap-3">
+      <div className="flex flex-wrap items-center gap-2 mb-4">
+        {/* Week nav */}
         <div className="flex items-center gap-1">
           <button
             onClick={() => goWeek(-1)}
@@ -359,12 +379,30 @@ export default function CalendarView({
           </button>
           <span className="text-sm font-semibold text-zinc-900 min-w-[150px] text-center">{weekLabel(weekStart)}</span>
           <button
-            onClick={() => router.push(`/dashboard/reservas?week=${toLocalISO(getWeekStart(today))}`)}
+            onClick={goToday}
             className="hidden sm:block text-xs px-3 py-1.5 rounded-lg bg-zinc-100 text-zinc-700 hover:bg-zinc-200 cursor-pointer transition font-medium"
           >
             Hoy
           </button>
         </div>
+
+        {/* Branch selector — only when multiple branches */}
+        {branches.length > 1 && (
+          <select
+            value={selectedBranchId ?? ''}
+            onChange={(e) => selectBranch(e.target.value || null)}
+            className="text-sm border border-zinc-200 rounded-lg px-2.5 py-1.5 text-zinc-700 bg-white hover:border-zinc-300 focus:outline-none focus:ring-2 focus:ring-zinc-900 cursor-pointer transition"
+          >
+            <option value="">Todas las sucursales</option>
+            {branches.map((b) => (
+              <option key={b.id} value={b.id}>{b.name}</option>
+            ))}
+          </select>
+        )}
+
+        {/* Spacer */}
+        <div className="flex-1" />
+
         <button
           onClick={openNew}
           className="flex items-center gap-1.5 bg-zinc-900 text-white text-sm font-medium px-3 py-2 rounded-lg hover:bg-zinc-700 cursor-pointer transition"

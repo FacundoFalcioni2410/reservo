@@ -32,30 +32,51 @@ model Tenant {
   users       User[]
   branches    Branch[]
   bookings    Booking[]
+  services    Service[]
 }
 
 model Branch {
-  id        String    @id @default(cuid())
-  name      String
-  address   String?
-  phone     String?
-  openTime  Int?
-  closeTime Int?
-  tenantId  String
-  tenant    Tenant    @relation(fields: [tenantId], references: [id])
-  bookings  Booking[]
-  createdAt DateTime  @default(now())
+  id            String    @id @default(cuid())
+  name          String
+  address       String?
+  phone         String?
+  openTime      Int?
+  closeTime     Int?
+  tenantId      String
+  tenant        Tenant    @relation(fields: [tenantId], references: [id])
+  bookings      Booking[]
+  professionals User[]    @relation("ProfessionalBranches")
+  services      Service[] @relation("BranchServices")
+  createdAt     DateTime  @default(now())
 }
 
 model User {
-  id           String    @id @default(cuid())
-  email        String    @unique
-  passwordHash String
-  role         Role      @default(client)
-  tenantId     String?
-  tenant       Tenant?   @relation(fields: [tenantId], references: [id])
-  bookings     Booking[] @relation("ProfessionalBookings")
-  createdAt    DateTime  @default(now())
+  id            String    @id @default(cuid())
+  email         String    @unique
+  passwordHash  String?
+  inviteToken   String?   @unique
+  inviteExpiry  DateTime?
+  role          Role      @default(client)
+  tenantId      String?
+  tenant        Tenant?   @relation(fields: [tenantId], references: [id])
+  bookings      Booking[] @relation("ProfessionalBookings")
+  branches      Branch[]  @relation("ProfessionalBranches")
+  services      Service[] @relation("ProfessionalServices")
+  createdAt     DateTime  @default(now())
+}
+
+model Service {
+  id            String    @id @default(cuid())
+  name          String
+  description   String?
+  price         Decimal?
+  imageUrl      String?
+  tenantId      String
+  tenant        Tenant    @relation(fields: [tenantId], references: [id])
+  professionals User[]    @relation("ProfessionalServices")
+  branches      Branch[]  @relation("BranchServices")
+  bookings      Booking[]
+  createdAt     DateTime  @default(now())
 }
 
 model Booking {
@@ -63,9 +84,11 @@ model Booking {
   tenantId       String
   tenant         Tenant        @relation(fields: [tenantId], references: [id])
   branchId       String?
-  branch         Branch?       @relation(fields: [branchId], references: [id])
+  branch         Branch?       @relation(fields: [branchId], references: [id], onDelete: SetNull)
   professionalId String?
-  professional   User?         @relation("ProfessionalBookings", fields: [professionalId], references: [id])
+  professional   User?         @relation("ProfessionalBookings", fields: [professionalId], references: [id], onDelete: SetNull)
+  serviceId      String?
+  service        Service?      @relation(fields: [serviceId], references: [id], onDelete: SetNull)
   clientName     String
   clientPhone    String?
   clientEmail    String?
