@@ -11,6 +11,12 @@ function parseHour(val: FormDataEntryValue | null): number | null {
   return isNaN(n) ? null : n
 }
 
+function parseWorkingDays(val: FormDataEntryValue | null): number | null {
+  if (!val || val === '') return null
+  const n = parseInt(val as string, 10)
+  return isNaN(n) ? null : n
+}
+
 function validate(name: string, openTime: number | null, closeTime: number | null) {
   const errors: Record<string, string[]> = {}
   if (!name) errors.name = ['El nombre es requerido.']
@@ -28,6 +34,7 @@ export async function createBranch(state: BranchState, formData: FormData): Prom
   const phone = (formData.get('phone') as string)?.trim() || null
   const openTime = parseHour(formData.get('openTime'))
   const closeTime = parseHour(formData.get('closeTime'))
+  const workingDays = parseWorkingDays(formData.get('workingDays'))
   const serviceIds = formData.getAll('serviceId') as string[]
 
   const errors = validate(name, openTime, closeTime)
@@ -35,7 +42,7 @@ export async function createBranch(state: BranchState, formData: FormData): Prom
 
   await prisma.branch.create({
     data: {
-      name, address, phone, openTime, closeTime, tenantId,
+      name, address, phone, openTime, closeTime, workingDays, tenantId,
       services: serviceIds.length ? { connect: serviceIds.map((id) => ({ id })) } : undefined,
     },
   })
@@ -53,6 +60,7 @@ export async function updateBranch(state: BranchState, formData: FormData): Prom
   const phone = (formData.get('phone') as string)?.trim() || null
   const openTime = parseHour(formData.get('openTime'))
   const closeTime = parseHour(formData.get('closeTime'))
+  const workingDays = parseWorkingDays(formData.get('workingDays'))
   const serviceIds = formData.getAll('serviceId') as string[]
 
   const errors = validate(name, openTime, closeTime)
@@ -64,7 +72,7 @@ export async function updateBranch(state: BranchState, formData: FormData): Prom
   await prisma.branch.update({
     where: { id },
     data: {
-      name, address, phone, openTime, closeTime,
+      name, address, phone, openTime, closeTime, workingDays,
       services: { set: serviceIds.map((sid) => ({ id: sid })) },
     },
   })

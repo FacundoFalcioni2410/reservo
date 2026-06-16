@@ -2,9 +2,13 @@
 import { useState, useTransition, useActionState, useEffect } from 'react'
 import PageHeader from '../../_components/PageHeader'
 import DeleteConfirm from '../../_components/DeleteConfirm'
+import Modal from '@/app/ui/Modal'
+import AvailabilityModal from './AvailabilityModal'
 import { createProfessional, deleteProfessional } from '@/app/actions/professionals'
 import { updateProfessionalAssignments } from '@/app/actions/assignments'
 import { getBookingsForProfessional } from '@/app/actions/bookings'
+import { formatDateTime } from '@/app/lib/dateUtils'
+import { BOOKING_STATUS } from '@/app/lib/bookingStatus'
 
 type AssignItem = { id: string; name: string }
 
@@ -91,98 +95,85 @@ function AddModal({ onClose }: { onClose: () => void }) {
   }, [state?.success])
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
-      <div className="absolute inset-0 bg-black/50" onClick={onClose} />
-      <div className="relative bg-white w-full sm:max-w-md sm:rounded-2xl rounded-t-2xl shadow-xl">
-        <div className="sticky top-0 bg-white border-b border-zinc-100 px-5 py-4 flex items-center justify-between rounded-t-2xl">
-          <h2 className="text-base font-semibold text-zinc-900">Nuevo profesional</h2>
-          <button onClick={onClose} className="p-1.5 rounded-lg text-zinc-400 hover:text-zinc-600 hover:bg-zinc-100 cursor-pointer transition">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
-            </svg>
-          </button>
-        </div>
+    <Modal onClose={onClose} title="Nuevo profesional" containerClass="">
+      {showInviteLink ? (
+        <InviteLinkScreen inviteUrl={state.inviteUrl!} onClose={onClose} />
+      ) : (
+        <form action={action} className="px-5 py-5 flex flex-col gap-4">
+          <div className="flex flex-col gap-1">
+            <label className="text-sm font-medium text-zinc-700">
+              Email <span className="text-red-500">*</span>
+            </label>
+            <input name="email" type="email" required autoComplete="off" placeholder="prof@negocio.com" className={INPUT_CLASS} />
+            {state?.errors?.email && <p className="text-xs text-red-600">{state.errors.email[0]}</p>}
+          </div>
 
-        {showInviteLink ? (
-          <InviteLinkScreen inviteUrl={state.inviteUrl!} onClose={onClose} />
-        ) : (
-          <form action={action} className="px-5 py-5 flex flex-col gap-4">
+          <div className="flex rounded-lg border border-zinc-200 overflow-hidden text-sm">
+            <button
+              type="button"
+              onClick={() => setSendInvite(true)}
+              className={`flex-1 py-2 font-medium transition cursor-pointer ${sendInvite ? 'bg-zinc-900 text-white' : 'text-zinc-500 hover:bg-zinc-50'}`}
+            >
+              Enviar invitación
+            </button>
+            <button
+              type="button"
+              onClick={() => setSendInvite(false)}
+              className={`flex-1 py-2 font-medium transition cursor-pointer ${!sendInvite ? 'bg-zinc-900 text-white' : 'text-zinc-500 hover:bg-zinc-50'}`}
+            >
+              Establecer contraseña
+            </button>
+          </div>
+          <input type="hidden" name="sendInvite" value={sendInvite ? 'true' : 'false'} />
+
+          {sendInvite ? (
+            <p className="text-xs text-zinc-500 bg-zinc-50 rounded-lg px-3 py-2.5 border border-zinc-200">
+              Se generará un link de invitación. Si el email no llega, podés compartirlo manualmente.
+            </p>
+          ) : (
             <div className="flex flex-col gap-1">
               <label className="text-sm font-medium text-zinc-700">
-                Email <span className="text-red-500">*</span>
+                Contraseña <span className="text-red-500">*</span>
               </label>
-              <input name="email" type="email" required autoComplete="off" placeholder="prof@negocio.com" className={INPUT_CLASS} />
-              {state?.errors?.email && <p className="text-xs text-red-600">{state.errors.email[0]}</p>}
-            </div>
-
-            {/* Mode toggle */}
-            <div className="flex rounded-lg border border-zinc-200 overflow-hidden text-sm">
-              <button
-                type="button"
-                onClick={() => setSendInvite(true)}
-                className={`flex-1 py-2 font-medium transition cursor-pointer ${sendInvite ? 'bg-zinc-900 text-white' : 'text-zinc-500 hover:bg-zinc-50'}`}
-              >
-                Enviar invitación
-              </button>
-              <button
-                type="button"
-                onClick={() => setSendInvite(false)}
-                className={`flex-1 py-2 font-medium transition cursor-pointer ${!sendInvite ? 'bg-zinc-900 text-white' : 'text-zinc-500 hover:bg-zinc-50'}`}
-              >
-                Establecer contraseña
-              </button>
-            </div>
-            <input type="hidden" name="sendInvite" value={sendInvite ? 'true' : 'false'} />
-
-            {sendInvite ? (
-              <p className="text-xs text-zinc-500 bg-zinc-50 rounded-lg px-3 py-2.5 border border-zinc-200">
-                Se generará un link de invitación. Si el email no llega, podés compartirlo manualmente.
-              </p>
-            ) : (
-              <div className="flex flex-col gap-1">
-                <label className="text-sm font-medium text-zinc-700">
-                  Contraseña <span className="text-red-500">*</span>
-                </label>
-                <div className="relative">
-                  <input
-                    name="password"
-                    type={showPass ? 'text' : 'password'}
-                    required={!sendInvite}
-                    autoComplete="new-password"
-                    placeholder="Mínimo 8 caracteres"
-                    className={`${INPUT_CLASS} pr-10`}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPass((v) => !v)}
-                    className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 text-zinc-400 hover:text-zinc-600 cursor-pointer transition"
-                  >
-                    {showPass ? (
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/>
-                      </svg>
-                    ) : (
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
-                      </svg>
-                    )}
-                  </button>
-                </div>
-                {state?.errors?.password && <p className="text-xs text-red-600">{state.errors.password[0]}</p>}
+              <div className="relative">
+                <input
+                  name="password"
+                  type={showPass ? 'text' : 'password'}
+                  required={!sendInvite}
+                  autoComplete="new-password"
+                  placeholder="Mínimo 8 caracteres"
+                  className={`${INPUT_CLASS} pr-10`}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPass((v) => !v)}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 text-zinc-400 hover:text-zinc-600 cursor-pointer transition"
+                >
+                  {showPass ? (
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/>
+                    </svg>
+                  ) : (
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
+                    </svg>
+                  )}
+                </button>
               </div>
-            )}
+              {state?.errors?.password && <p className="text-xs text-red-600">{state.errors.password[0]}</p>}
+            </div>
+          )}
 
-            <button
-              type="submit"
-              disabled={pending}
-              className="mt-1 w-full rounded-lg bg-zinc-900 px-4 py-2.5 text-sm font-medium text-white hover:bg-zinc-700 disabled:opacity-50 cursor-pointer transition"
-            >
-              {pending ? 'Guardando…' : sendInvite ? 'Enviar invitación' : 'Crear profesional'}
-            </button>
-          </form>
-        )}
-      </div>
-    </div>
+          <button
+            type="submit"
+            disabled={pending}
+            className="mt-1 w-full rounded-lg bg-zinc-900 px-4 py-2.5 text-sm font-medium text-white hover:bg-zinc-700 disabled:opacity-50 cursor-pointer transition"
+          >
+            {pending ? 'Guardando…' : sendInvite ? 'Enviar invitación' : 'Crear profesional'}
+          </button>
+        </form>
+      )}
+    </Modal>
   )
 }
 
@@ -206,106 +197,75 @@ function AssignModal({
   }, [state?.success])
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
-      <div className="absolute inset-0 bg-black/50" onClick={onClose} />
-      <div className="relative bg-white w-full sm:max-w-md sm:rounded-2xl rounded-t-2xl shadow-xl max-h-[92vh] overflow-y-auto">
-        <div className="sticky top-0 bg-white border-b border-zinc-100 px-5 py-4 flex items-center justify-between rounded-t-2xl">
-          <div className="min-w-0">
-            <h2 className="text-base font-semibold text-zinc-900">Asignaciones</h2>
-            <p className="text-xs text-zinc-400 truncate">{professional.email}</p>
-          </div>
-          <button onClick={onClose} className="p-1.5 rounded-lg text-zinc-400 hover:text-zinc-600 hover:bg-zinc-100 cursor-pointer transition flex-shrink-0">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
-            </svg>
-          </button>
+    <Modal onClose={onClose} title="Asignaciones" subtitle={professional.email}>
+      <form action={action} className="px-5 py-5 flex flex-col gap-5">
+        <input type="hidden" name="professionalId" value={professional.id} />
+        {state?.error && <p className="text-xs text-red-600">{state.error}</p>}
+
+        <div className="flex flex-col gap-2">
+          <p className="text-sm font-semibold text-zinc-900">Sucursales</p>
+          {allBranches.length === 0 ? (
+            <p className="text-xs text-zinc-400">No hay sucursales creadas.</p>
+          ) : (
+            <div className="flex flex-col gap-1.5">
+              {allBranches.map((b) => (
+                <label key={b.id} className="flex items-center gap-2.5 cursor-pointer select-none py-1">
+                  <input
+                    type="checkbox"
+                    name="branchId"
+                    value={b.id}
+                    defaultChecked={professional.branches.some((pb) => pb.id === b.id)}
+                    className="w-4 h-4 rounded accent-zinc-900"
+                  />
+                  <span className="text-sm text-zinc-700">{b.name}</span>
+                </label>
+              ))}
+            </div>
+          )}
         </div>
 
-        <form action={action} className="px-5 py-5 flex flex-col gap-5">
-          <input type="hidden" name="professionalId" value={professional.id} />
-          {state?.error && <p className="text-xs text-red-600">{state.error}</p>}
+        <div className="border-t border-zinc-100" />
 
-          {/* Branches */}
-          <div className="flex flex-col gap-2">
-            <p className="text-sm font-semibold text-zinc-900">Sucursales</p>
-            {allBranches.length === 0 ? (
-              <p className="text-xs text-zinc-400">No hay sucursales creadas.</p>
-            ) : (
-              <div className="flex flex-col gap-1.5">
-                {allBranches.map((b) => (
-                  <label key={b.id} className="flex items-center gap-2.5 cursor-pointer select-none py-1">
-                    <input
-                      type="checkbox"
-                      name="branchId"
-                      value={b.id}
-                      defaultChecked={professional.branches.some((pb) => pb.id === b.id)}
-                      className="w-4 h-4 rounded accent-zinc-900"
-                    />
-                    <span className="text-sm text-zinc-700">{b.name}</span>
-                  </label>
-                ))}
-              </div>
-            )}
-          </div>
+        <div className="flex flex-col gap-2">
+          <p className="text-sm font-semibold text-zinc-900">Servicios que realiza</p>
+          {allServices.length === 0 ? (
+            <p className="text-xs text-zinc-400">No hay servicios creados.</p>
+          ) : (
+            <div className="flex flex-col gap-1.5">
+              {allServices.map((s) => (
+                <label key={s.id} className="flex items-center gap-2.5 cursor-pointer select-none py-1">
+                  <input
+                    type="checkbox"
+                    name="serviceId"
+                    value={s.id}
+                    defaultChecked={professional.services.some((ps) => ps.id === s.id)}
+                    className="w-4 h-4 rounded accent-zinc-900"
+                  />
+                  <span className="text-sm text-zinc-700">{s.name}</span>
+                </label>
+              ))}
+            </div>
+          )}
+        </div>
 
-          <div className="border-t border-zinc-100" />
-
-          {/* Services */}
-          <div className="flex flex-col gap-2">
-            <p className="text-sm font-semibold text-zinc-900">Servicios que realiza</p>
-            {allServices.length === 0 ? (
-              <p className="text-xs text-zinc-400">No hay servicios creados.</p>
-            ) : (
-              <div className="flex flex-col gap-1.5">
-                {allServices.map((s) => (
-                  <label key={s.id} className="flex items-center gap-2.5 cursor-pointer select-none py-1">
-                    <input
-                      type="checkbox"
-                      name="serviceId"
-                      value={s.id}
-                      defaultChecked={professional.services.some((ps) => ps.id === s.id)}
-                      className="w-4 h-4 rounded accent-zinc-900"
-                    />
-                    <span className="text-sm text-zinc-700">{s.name}</span>
-                  </label>
-                ))}
-              </div>
-            )}
-          </div>
-
-          <button
-            type="submit"
-            disabled={pending}
-            className="w-full rounded-lg bg-zinc-900 px-4 py-2.5 text-sm font-medium text-white hover:bg-zinc-700 disabled:opacity-50 cursor-pointer transition"
-          >
-            {pending ? 'Guardando…' : 'Guardar asignaciones'}
-          </button>
-        </form>
-      </div>
-    </div>
+        <button
+          type="submit"
+          disabled={pending}
+          className="w-full rounded-lg bg-zinc-900 px-4 py-2.5 text-sm font-medium text-white hover:bg-zinc-700 disabled:opacity-50 cursor-pointer transition"
+        >
+          {pending ? 'Guardando…' : 'Guardar asignaciones'}
+        </button>
+      </form>
+    </Modal>
   )
 }
 
 // ─── Bookings modal ───────────────────────────────────────────────────────────
 
-const MONTHS_ES = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic']
-
-function formatDateTime(iso: string) {
-  const d = new Date(iso)
-  return `${d.getDate()} ${MONTHS_ES[d.getMonth()]} ${d.getFullYear()} · ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`
-}
-
-const STATUS_LABEL: Record<string, { label: string; color: string }> = {
-  pending:   { label: 'Pendiente',  color: 'bg-yellow-100 text-yellow-700' },
-  confirmed: { label: 'Confirmada', color: 'bg-blue-100 text-blue-700' },
-  completed: { label: 'Completada', color: 'bg-green-100 text-green-700' },
-  cancelled: { label: 'Cancelada',  color: 'bg-red-100 text-red-600' },
-}
-
 type BookingItem = { id: string; clientName: string; serviceName: string | null; startTime: string; endTime: string; status: string }
 
 function BookingRow({ b }: { b: BookingItem }) {
-  const s = STATUS_LABEL[b.status] ?? { label: b.status, color: 'bg-zinc-100 text-zinc-600' }
+  const s = BOOKING_STATUS[b.status] ?? { label: b.status, badgeClass: 'bg-zinc-100 text-zinc-600' }
   return (
     <div className="px-4 py-3 flex items-center gap-3">
       <div className="flex-1 min-w-0">
@@ -315,7 +275,7 @@ function BookingRow({ b }: { b: BookingItem }) {
           {formatDateTime(b.startTime)}
         </p>
       </div>
-      <span className={`text-xs font-medium px-2 py-0.5 rounded-full flex-shrink-0 ${s.color}`}>{s.label}</span>
+      <span className={`text-xs font-medium px-2 py-0.5 rounded-full flex-shrink-0 ${s.badgeClass}`}>{s.label}</span>
     </div>
   )
 }
@@ -332,53 +292,44 @@ function BookingsModal({ professionalId, professionalEmail, onClose }: { profess
   const past = bookings?.filter((b) => b.startTime < now).reverse() ?? []
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
-      <div className="absolute inset-0 bg-black/50" onClick={onClose} />
-      <div className="relative bg-white w-full sm:max-w-lg sm:rounded-2xl rounded-t-2xl shadow-xl max-h-[90vh] flex flex-col">
-        <div className="sticky top-0 bg-white border-b border-zinc-100 px-5 py-4 flex items-center justify-between rounded-t-2xl flex-shrink-0">
-          <div className="min-w-0">
-            <h2 className="text-base font-semibold text-zinc-900">Turnos</h2>
-            <p className="text-xs text-zinc-400 truncate">{professionalEmail}</p>
-          </div>
-          <button onClick={onClose} className="p-1.5 rounded-lg text-zinc-400 hover:text-zinc-600 hover:bg-zinc-100 cursor-pointer transition flex-shrink-0">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
-            </svg>
-          </button>
-        </div>
-
-        <div className="overflow-y-auto flex-1">
-          {bookings === null ? (
-            <p className="text-sm text-zinc-400 text-center py-10">Cargando…</p>
-          ) : bookings.length === 0 ? (
-            <p className="text-sm text-zinc-400 text-center py-10">Este profesional no tiene turnos.</p>
-          ) : (
-            <>
-              {upcoming.length > 0 && (
-                <div>
-                  <p className="px-4 py-2 text-xs font-semibold text-zinc-500 uppercase tracking-wide bg-zinc-50 border-b border-zinc-100">
-                    Próximos ({upcoming.length})
-                  </p>
-                  <div className="divide-y divide-zinc-100">
-                    {upcoming.map((b) => <BookingRow key={b.id} b={b} />)}
-                  </div>
+    <Modal
+      onClose={onClose}
+      title="Turnos"
+      subtitle={professionalEmail}
+      maxWidth="sm:max-w-lg"
+      containerClass="max-h-[90vh] flex flex-col"
+    >
+      <div className="overflow-y-auto flex-1">
+        {bookings === null ? (
+          <p className="text-sm text-zinc-400 text-center py-10">Cargando…</p>
+        ) : bookings.length === 0 ? (
+          <p className="text-sm text-zinc-400 text-center py-10">Este profesional no tiene turnos.</p>
+        ) : (
+          <>
+            {upcoming.length > 0 && (
+              <div>
+                <p className="px-4 py-2 text-xs font-semibold text-zinc-500 uppercase tracking-wide bg-zinc-50 border-b border-zinc-100">
+                  Próximos ({upcoming.length})
+                </p>
+                <div className="divide-y divide-zinc-100">
+                  {upcoming.map((b) => <BookingRow key={b.id} b={b} />)}
                 </div>
-              )}
-              {past.length > 0 && (
-                <div>
-                  <p className="px-4 py-2 text-xs font-semibold text-zinc-500 uppercase tracking-wide bg-zinc-50 border-b border-zinc-100">
-                    Pasados ({past.length})
-                  </p>
-                  <div className="divide-y divide-zinc-100">
-                    {past.map((b) => <BookingRow key={b.id} b={b} />)}
-                  </div>
+              </div>
+            )}
+            {past.length > 0 && (
+              <div>
+                <p className="px-4 py-2 text-xs font-semibold text-zinc-500 uppercase tracking-wide bg-zinc-50 border-b border-zinc-100">
+                  Pasados ({past.length})
+                </p>
+                <div className="divide-y divide-zinc-100">
+                  {past.map((b) => <BookingRow key={b.id} b={b} />)}
                 </div>
-              )}
-            </>
-          )}
-        </div>
+              </div>
+            )}
+          </>
+        )}
       </div>
-    </div>
+    </Modal>
   )
 }
 
@@ -396,6 +347,7 @@ export default function ProfesionalesClient({
   const [showAdd, setShowAdd] = useState(false)
   const [assignPro, setAssignPro] = useState<Professional | null>(null)
   const [bookingsPro, setBookingsPro] = useState<Professional | null>(null)
+  const [availabilityPro, setAvailabilityPro] = useState<Professional | null>(null)
   const [confirmId, setConfirmId] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
 
@@ -408,10 +360,6 @@ export default function ProfesionalesClient({
 
   function formatDate(iso: string) {
     return new Date(iso).toLocaleDateString('es-AR', { day: 'numeric', month: 'short', year: 'numeric' })
-  }
-
-  function initials(email: string) {
-    return email[0].toUpperCase()
   }
 
   return (
@@ -452,7 +400,7 @@ export default function ProfesionalesClient({
             >
               <div className="flex items-center gap-3">
                 <div className="w-9 h-9 rounded-full bg-zinc-100 flex items-center justify-center text-sm font-semibold text-zinc-600 flex-shrink-0">
-                  {initials(p.email)}
+                  {p.email[0].toUpperCase()}
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
@@ -487,6 +435,16 @@ export default function ProfesionalesClient({
                         </svg>
                       </button>
                       <button
+                        onClick={() => setAvailabilityPro(p)}
+                        className="p-1.5 rounded-lg text-zinc-400 hover:text-zinc-700 hover:bg-zinc-100 cursor-pointer transition"
+                        aria-label="Disponibilidad"
+                        title="Disponibilidad"
+                      >
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+                        </svg>
+                      </button>
+                      <button
                         onClick={() => setAssignPro(p)}
                         className="p-1.5 rounded-lg text-zinc-400 hover:text-zinc-700 hover:bg-zinc-100 cursor-pointer transition"
                         aria-label="Asignaciones"
@@ -511,7 +469,6 @@ export default function ProfesionalesClient({
                 </div>
               </div>
 
-              {/* Assignment tags */}
               {(p.branches.length > 0 || p.services.length > 0) && (
                 <div className="mt-2.5 pl-12 flex flex-wrap gap-1.5">
                   {p.branches.map((b) => (
@@ -547,6 +504,14 @@ export default function ProfesionalesClient({
           professionalId={bookingsPro.id}
           professionalEmail={bookingsPro.email}
           onClose={() => setBookingsPro(null)}
+        />
+      )}
+      {availabilityPro && (
+        <AvailabilityModal
+          key={availabilityPro.id}
+          professionalId={availabilityPro.id}
+          professionalEmail={availabilityPro.email}
+          onClose={() => setAvailabilityPro(null)}
         />
       )}
     </>

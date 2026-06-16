@@ -22,8 +22,8 @@ export async function createBooking(state: BookingState, formData: FormData): Pr
     return { error: 'Completá los campos requeridos.' }
   }
 
-  const startTime = new Date(`${date}T${startTimeStr}`)
-  const endTime = new Date(`${date}T${endTimeStr}`)
+  const startTime = new Date(`${date}T${startTimeStr}:00Z`)
+  const endTime = new Date(`${date}T${endTimeStr}:00Z`)
 
   if (isNaN(startTime.getTime()) || isNaN(endTime.getTime())) {
     return { error: 'Fecha u hora inválida.' }

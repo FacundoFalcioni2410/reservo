@@ -1,6 +1,7 @@
 'use client'
-import { useState, useEffect, useTransition } from 'react'
-import { getAvailableSlots, createPublicBooking, type Slot } from '@/app/actions/publicBooking'
+import { useState, useEffect, useTransition, useMemo } from 'react'
+import { getAvailableSlots, createPublicBooking, getUnavailableDates, type Slot } from '@/app/actions/publicBooking'
+import { pad2, addDays, toDateStr, formatDate } from '@/app/lib/dateUtils'
 
 type Service = {
   id: string
@@ -24,32 +25,14 @@ type TenantInfo = {
   logoUrl: string | null
   openTime: number
   closeTime: number
+  workingDays: number
 }
 
 type Step = 'service' | 'professional' | 'datetime' | 'details' | 'done'
 
 // ─── Date helpers ─────────────────────────────────────────────────────────────
 
-const MONTHS_ES = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre']
 const DAYS_SHORT = ['Do','Lu','Ma','Mi','Ju','Vi','Sa']
-
-function addDays(d: Date, n: number) {
-  const r = new Date(d)
-  r.setDate(r.getDate() + n)
-  return r
-}
-
-function toDateStr(d: Date) {
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
-}
-
-function formatDate(dateStr: string) {
-  const [y, m, day] = dateStr.split('-').map(Number)
-  const d = new Date(y, m - 1, day)
-  return `${d.getDate()} de ${MONTHS_ES[d.getMonth()]} ${d.getFullYear()}`
-}
-
-function pad2(n: number) { return String(n).padStart(2, '0') }
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
@@ -118,18 +101,23 @@ export default function BookingFlow({
   const [serviceId, setServiceId] = useState<string | null>(autoServiceId)
   const [professionalId, setProfessionalId] = useState<string | null>(autoProfId)
 
-  // Date picker
-  const today = new Date()
-  today.setHours(0, 0, 0, 0)
+  // Date picker — today/weekStart/weekDays are memoized so keystroke state
+  // changes (clientName, clientPhone, etc.) don't recompute them
+  const today = useMemo(() => {
+    const d = new Date()
+    d.setHours(0, 0, 0, 0)
+    return d
+  }, [])
   const [weekOffset, setWeekOffset] = useState(0)
-  const weekStart = addDays(today, weekOffset * 7)
-  const weekDays = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i))
+  const weekStart = useMemo(() => addDays(today, weekOffset * 7), [today, weekOffset])
+  const weekDays = useMemo(() => Array.from({ length: 7 }, (_, i) => addDays(weekStart, i)), [weekStart])
 
   const [selectedDate, setSelectedDate] = useState<string | null>(null)
   const [selectedHour, setSelectedHour] = useState<number | null>(null)
   const [selectedMinute, setSelectedMinute] = useState<number>(0)
   const [slots, setSlots] = useState<Slot[]>([])
   const [loadingSlots, setLoadingSlots] = useState(false)
+  const [unavailableDates, setUnavailableDates] = useState<Set<string>>(new Set())
 
   // Details
   const [clientName, setClientName] = useState('')
@@ -150,6 +138,15 @@ export default function BookingFlow({
   // Duration from selected service (or default 60 min)
   const activeDuration = selectedService?.duration ?? 60
 
+  // Load unavailable dates for the current week when professional or week changes
+  useEffect(() => {
+    if (!professionalId) { setUnavailableDates(new Set()); return }
+    const weekStartStr = toDateStr(weekStart)
+    getUnavailableDates(tenant.id, professionalId, weekStartStr, tenant.workingDays).then((dates) => {
+      setUnavailableDates(new Set(dates))
+    })
+  }, [professionalId, weekOffset])
+
   // Load slots when date, professional, or duration changes
   useEffect(() => {
     if (!selectedDate || !professionalId) return
@@ -162,9 +159,13 @@ export default function BookingFlow({
       selectedDate,
       tenant.openTime,
       tenant.closeTime,
-      activeDuration
+      activeDuration,
+      tenant.workingDays
     ).then((result) => {
       setSlots(result)
+      setLoadingSlots(false)
+    }).catch(() => {
+      setSlots([])
       setLoadingSlots(false)
     })
   }, [selectedDate, professionalId, activeDuration])
@@ -362,13 +363,16 @@ export default function BookingFlow({
                   const isPast = day < today
                   const dateStr = toDateStr(day)
                   const isSelected = dateStr === selectedDate
+                  const isUnavailable = !isPast && unavailableDates.has(dateStr)
+                  const isDisabled = isPast || isUnavailable
                   return (
                     <button
                       key={dateStr}
-                      onClick={() => !isPast && setSelectedDate(dateStr)}
-                      disabled={isPast}
+                      onClick={() => !isDisabled && setSelectedDate(dateStr)}
+                      disabled={isDisabled}
+                      title={isUnavailable ? 'No disponible' : undefined}
                       className={`flex flex-col items-center py-2 rounded-lg transition ${
-                        isPast
+                        isDisabled
                           ? 'text-zinc-300 cursor-not-allowed'
                           : isSelected
                           ? 'bg-zinc-900 text-white cursor-pointer'
@@ -378,7 +382,7 @@ export default function BookingFlow({
                       <span className={`text-[10px] font-medium mb-0.5 ${isSelected ? 'text-zinc-300' : 'text-zinc-400'}`}>
                         {DAYS_SHORT[day.getDay()]}
                       </span>
-                      <span className="text-sm font-semibold">{day.getDate()}</span>
+                      <span className={`text-sm font-semibold ${isUnavailable ? 'line-through' : ''}`}>{day.getDate()}</span>
                     </button>
                   )
                 })}

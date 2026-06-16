@@ -13,30 +13,38 @@ type Branch = {
   phone: string | null
   openTime: number | null
   closeTime: number | null
+  workingDays: number | null
   professionals: Professional[]
   serviceIds: string[]
 }
 
-type TenantHours = { openTime: number; closeTime: number }
+type TenantDefaults = { openTime: number; closeTime: number; workingDays: number }
 type ServiceItem = { id: string; name: string }
 
 const INPUT_CLASS =
   'rounded-lg border border-zinc-300 px-3 py-2 text-sm text-zinc-900 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-zinc-900 focus:border-transparent transition w-full'
 
 const HOURS = Array.from({ length: 24 }, (_, i) => i)
+const DAY_LABELS = ['Do', 'Lu', 'Ma', 'Mi', 'Ju', 'Vi', 'Sá']
+const DAY_ORDER = [1, 2, 3, 4, 5, 6, 0] // Mon first
+
 function hourLabel(h: number) { return `${String(h).padStart(2, '0')}:00` }
 function pad2(n: number) { return String(n).padStart(2, '0') }
+
+function workingDaysLabel(mask: number) {
+  return DAY_ORDER.filter((dow) => (mask >> dow) & 1).map((dow) => DAY_LABELS[dow]).join(' · ') || 'Ningún día'
+}
 
 // ─── Branch form modal ────────────────────────────────────────────────────────
 
 function BranchModal({
   branch,
-  tenantHours,
+  tenantDefaults,
   allServices,
   onClose,
 }: {
   branch?: Branch
-  tenantHours: TenantHours
+  tenantDefaults: TenantDefaults
   allServices: ServiceItem[]
   onClose: () => void
 }) {
@@ -45,10 +53,24 @@ function BranchModal({
   const [overrideHours, setOverrideHours] = useState(
     branch ? branch.openTime !== null : false
   )
+  const [overrideWorkingDays, setOverrideWorkingDays] = useState(
+    branch ? branch.workingDays !== null : false
+  )
+  const [branchWorkingDaysMask, setBranchWorkingDaysMask] = useState(
+    branch?.workingDays ?? tenantDefaults.workingDays
+  )
 
   useEffect(() => {
     if (state?.success) onClose()
   }, [state?.success])
+
+  function toggleDay(dow: number) {
+    setBranchWorkingDaysMask((prev) => prev ^ (1 << dow))
+  }
+
+  function isDayOn(dow: number) {
+    return ((branchWorkingDaysMask >> dow) & 1) === 1
+  }
 
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
@@ -102,7 +124,7 @@ function BranchModal({
               <div className="grid grid-cols-2 gap-3">
                 <div className="flex flex-col gap-1">
                   <label className="text-sm font-medium text-zinc-700">Apertura</label>
-                  <select name="openTime" defaultValue={branch?.openTime ?? tenantHours.openTime} className={INPUT_CLASS}>
+                  <select name="openTime" defaultValue={branch?.openTime ?? tenantDefaults.openTime} className={INPUT_CLASS}>
                     {HOURS.slice(0, 23).map((h) => (
                       <option key={h} value={h}>{hourLabel(h)}</option>
                     ))}
@@ -110,7 +132,7 @@ function BranchModal({
                 </div>
                 <div className="flex flex-col gap-1">
                   <label className="text-sm font-medium text-zinc-700">Cierre</label>
-                  <select name="closeTime" defaultValue={branch?.closeTime ?? tenantHours.closeTime} className={INPUT_CLASS}>
+                  <select name="closeTime" defaultValue={branch?.closeTime ?? tenantDefaults.closeTime} className={INPUT_CLASS}>
                     {HOURS.slice(1).map((h) => (
                       <option key={h} value={h}>{hourLabel(h)}</option>
                     ))}
@@ -122,11 +144,53 @@ function BranchModal({
                 <input type="hidden" name="openTime" value="" />
                 <input type="hidden" name="closeTime" value="" />
                 <p className="text-xs text-zinc-400">
-                  Se usará el horario del negocio: {hourLabel(tenantHours.openTime)} – {hourLabel(tenantHours.closeTime)}
+                  Se usará el horario del negocio: {hourLabel(tenantDefaults.openTime)} – {hourLabel(tenantDefaults.closeTime)}
                 </p>
               </>
             )}
             {state?.errors?.openTime && <p className="text-xs text-red-600">{state.errors.openTime[0]}</p>}
+          </div>
+
+          {/* Working days override */}
+          <div className="flex flex-col gap-3">
+            <label className="flex items-center gap-2.5 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={overrideWorkingDays}
+                onChange={(e) => setOverrideWorkingDays(e.target.checked)}
+                className="w-4 h-4 rounded accent-zinc-900"
+              />
+              <span className="text-sm font-medium text-zinc-700">Sobreescribir días de atención</span>
+            </label>
+
+            {overrideWorkingDays ? (
+              <>
+                <div className="flex gap-2 flex-wrap">
+                  {DAY_ORDER.map((dow) => (
+                    <button
+                      key={dow}
+                      type="button"
+                      onClick={() => toggleDay(dow)}
+                      className={`w-11 h-11 rounded-lg text-sm font-medium transition cursor-pointer ${
+                        isDayOn(dow)
+                          ? 'bg-zinc-900 text-white'
+                          : 'bg-zinc-100 text-zinc-400 hover:bg-zinc-200'
+                      }`}
+                    >
+                      {DAY_LABELS[dow]}
+                    </button>
+                  ))}
+                </div>
+                <input type="hidden" name="workingDays" value={branchWorkingDaysMask} />
+              </>
+            ) : (
+              <>
+                <input type="hidden" name="workingDays" value="" />
+                <p className="text-xs text-zinc-400">
+                  Se usarán los días del negocio: {workingDaysLabel(tenantDefaults.workingDays)}
+                </p>
+              </>
+            )}
           </div>
 
           {/* Services */}
@@ -168,11 +232,11 @@ function BranchModal({
 
 export default function SucursalesClient({
   branches,
-  tenantHours,
+  tenantDefaults,
   allServices,
 }: {
   branches: Branch[]
-  tenantHours: TenantHours
+  tenantDefaults: TenantDefaults
   allServices: ServiceItem[]
 }) {
   const [modal, setModal] = useState<'create' | Branch | null>(null)
@@ -190,7 +254,13 @@ export default function SucursalesClient({
     if (b.openTime !== null && b.closeTime !== null) {
       return `${pad2(b.openTime)}:00 – ${pad2(b.closeTime)}:00`
     }
-    return `${pad2(tenantHours.openTime)}:00 – ${pad2(tenantHours.closeTime)}:00 (heredado)`
+    return `${pad2(tenantDefaults.openTime)}:00 – ${pad2(tenantDefaults.closeTime)}:00 (heredado)`
+  }
+
+  function daysLabel(b: Branch) {
+    const mask = b.workingDays ?? tenantDefaults.workingDays
+    const label = workingDaysLabel(mask)
+    return b.workingDays !== null ? label : `${label} (heredado)`
   }
 
   function initials(email: string) {
@@ -255,6 +325,12 @@ export default function SucursalesClient({
                     </svg>
                     {hoursLabel(b)}
                   </p>
+                  <p className="text-xs text-zinc-400 mt-0.5 flex items-center gap-1">
+                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
+                    </svg>
+                    {daysLabel(b)}
+                  </p>
                 </div>
 
                 <div className="flex items-center gap-1 flex-shrink-0">
@@ -318,7 +394,7 @@ export default function SucursalesClient({
         <BranchModal
           key={modal === 'create' ? 'create' : modal.id}
           branch={modal === 'create' ? undefined : modal}
-          tenantHours={tenantHours}
+          tenantDefaults={tenantDefaults}
           allServices={allServices}
           onClose={() => setModal(null)}
         />

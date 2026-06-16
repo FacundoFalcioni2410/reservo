@@ -1,6 +1,7 @@
 'use client'
 import { useActionState, useEffect, useState } from 'react'
 import { createBooking } from '@/app/actions/bookings'
+import Modal from '@/app/ui/Modal'
 
 type Service = { id: string; name: string }
 type Professional = { id: string; email: string; services: Service[] }
@@ -40,23 +41,8 @@ export default function NewBookingModal({
   const availableServices = selectedProfessional?.services ?? []
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
-      <div className="absolute inset-0 bg-black/50" onClick={onClose} />
-      <div className="relative bg-white w-full sm:max-w-md sm:rounded-2xl rounded-t-2xl shadow-xl max-h-[92vh] overflow-y-auto">
-        <div className="sticky top-0 bg-white border-b border-zinc-100 px-5 py-4 flex items-center justify-between rounded-t-2xl sm:rounded-t-2xl">
-          <h2 className="text-base font-semibold text-zinc-900">Nueva reserva</h2>
-          <button
-            onClick={onClose}
-            className="p-1.5 rounded-lg text-zinc-400 hover:text-zinc-600 hover:bg-zinc-100 cursor-pointer transition"
-            aria-label="Cerrar"
-          >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
-            </svg>
-          </button>
-        </div>
-
-        <form action={action} className="px-5 py-5 flex flex-col gap-4">
+    <Modal onClose={onClose} title="Nueva reserva">
+      <form action={action} className="px-5 py-5 flex flex-col gap-4">
           <div className="flex flex-col gap-1">
             <label className="text-sm font-medium text-zinc-700">
               Nombre del cliente <span className="text-red-500">*</span>
@@ -142,8 +128,7 @@ export default function NewBookingModal({
           >
             {pending ? 'Guardando…' : 'Crear reserva'}
           </button>
-        </form>
-      </div>
-    </div>
+      </form>
+    </Modal>
   )
 }

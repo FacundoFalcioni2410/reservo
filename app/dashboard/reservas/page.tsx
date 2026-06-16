@@ -23,7 +23,7 @@ export default async function ReservasPage({
 
   const now = new Date()
 
-  const [bookings, professionals, tenant, branches] = await Promise.all([
+  const [bookings, professionals, tenant, branches, blackoutsRaw] = await Promise.all([
     isListView
       ? prisma.booking.findMany({
           where: { tenantId, professionalId: userId },
@@ -53,6 +53,18 @@ export default async function ReservasPage({
       where: { tenantId, ...(isPro ? { professionals: { some: { id: userId } } } : {}) },
       select: { id: true, name: true, openTime: true, closeTime: true },
       orderBy: { createdAt: 'asc' },
+    }),
+    isPro ? Promise.resolve([]) : prisma.blackoutDate.findMany({
+      where: {
+        tenantId,
+        OR: [
+          ...(professionalParam ? [{ professionalId: professionalParam }] : []),
+          { professionalId: null },
+        ],
+        startDate: { lte: weekEnd },
+        endDate: { gte: weekStart },
+      },
+      select: { startDate: true, endDate: true },
     }),
   ])
 
@@ -85,6 +97,17 @@ export default async function ReservasPage({
 
   const serializedBranches = branches.map((b) => ({ id: b.id, name: b.name }))
 
+  // Expand blackout date ranges into individual YYYY-MM-DD strings for the current week
+  const blackoutDates: string[] = []
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(weekStart)
+    d.setDate(d.getDate() + i)
+    const dateStr = toLocalISO(d)
+    if (blackoutsRaw.some((b) => b.startDate.toISOString().slice(0, 10) <= dateStr && dateStr <= b.endDate.toISOString().slice(0, 10))) {
+      blackoutDates.push(dateStr)
+    }
+  }
+
   if (isListView) {
     const nowISO = now.toISOString()
     const upcoming = serializedBookings.filter((b) => b.startTime >= nowISO)
@@ -110,6 +133,7 @@ export default async function ReservasPage({
         selectedBranchId={branchParam ?? null}
         selectedProfessionalId={professionalParam ?? null}
         isPro={isPro}
+        blackoutDates={blackoutDates}
       />
     </div>
   )

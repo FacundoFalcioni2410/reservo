@@ -19,6 +19,7 @@ export async function updateTenantSettings(
   const description = (formData.get('description') as string)?.trim() || null
   const openTime = parseInt(formData.get('openTime') as string, 10)
   const closeTime = parseInt(formData.get('closeTime') as string, 10)
+  const workingDays = parseInt(formData.get('workingDays') as string, 10)
 
   const errors: Record<string, string[]> = {}
 
@@ -38,7 +39,7 @@ export async function updateTenantSettings(
 
   await prisma.tenant.update({
     where: { id: tenantId },
-    data: { name, slug, phone, description, openTime, closeTime },
+    data: { name, slug, phone, description, openTime, closeTime, workingDays: isNaN(workingDays) ? 62 : workingDays },
   })
 
   revalidatePath('/dashboard')

@@ -18,6 +18,7 @@ export default async function SucursalesPage() {
         phone: true,
         openTime: true,
         closeTime: true,
+        workingDays: true,
         professionals: { select: { id: true, email: true } },
         services: { select: { id: true } },
       },
@@ -25,7 +26,7 @@ export default async function SucursalesPage() {
     }),
     prisma.tenant.findUnique({
       where: { id: tenantId },
-      select: { openTime: true, closeTime: true },
+      select: { openTime: true, closeTime: true, workingDays: true },
     }),
     prisma.service.findMany({
       where: { tenantId },
@@ -45,7 +46,11 @@ export default async function SucursalesPage() {
     <div className="px-4 py-6 sm:px-8 sm:py-8 max-w-2xl mx-auto">
       <SucursalesClient
         branches={serializedBranches}
-        tenantHours={{ openTime: tenant.openTime, closeTime: tenant.closeTime }}
+        tenantDefaults={{
+          openTime: tenant.openTime,
+          closeTime: tenant.closeTime,
+          workingDays: tenant.workingDays,
+        }}
         allServices={allServices}
       />
     </div>

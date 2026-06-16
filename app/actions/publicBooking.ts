@@ -8,28 +8,49 @@ export async function getAvailableSlots(
   tenantId: string,
   professionalId: string,
   dateStr: string,
-  openTime: number,   // whole hours (e.g. 8)
-  closeTime: number,  // whole hours (e.g. 20)
-  duration: number    // minutes (e.g. 30, 60, 90)
+  openTime: number,    // whole hours (e.g. 8) — used as fallback when no schedule is set
+  closeTime: number,   // whole hours (e.g. 20) — used as fallback when no schedule is set
+  duration: number,    // minutes (e.g. 30, 60, 90)
+  workingDays: number = 127  // bitmask bit0=Dom..bit6=Sáb; 127=all open (default)
 ): Promise<Slot[]> {
   const [year, month, day] = dateStr.split('-').map(Number)
-
   const dayStart = new Date(Date.UTC(year, month - 1, day, 0, 0, 0))
   const dayEnd = new Date(Date.UTC(year, month - 1, day + 1, 0, 0, 0))
+  const dayOfWeek = new Date(Date.UTC(year, month - 1, day)).getUTCDay()
 
-  const bookings = await prisma.booking.findMany({
-    where: {
-      tenantId,
-      professionalId,
-      status: { not: 'cancelled' },
-      startTime: { gte: dayStart, lt: dayEnd },
-    },
-    select: { startTime: true, endTime: true },
-  })
+  const [schedule, blackout, bookings] = await Promise.all([
+    prisma.professionalSchedule.findUnique({
+      where: { professionalId_dayOfWeek: { professionalId, dayOfWeek } },
+    }),
+    prisma.blackoutDate.findFirst({
+      where: {
+        tenantId,
+        OR: [{ professionalId }, { professionalId: null }],
+        startDate: { lte: dayStart },
+        endDate: { gte: dayStart },
+      },
+    }),
+    prisma.booking.findMany({
+      where: {
+        tenantId,
+        professionalId,
+        status: { not: 'cancelled' },
+        startTime: { gte: dayStart, lt: dayEnd },
+      },
+      select: { startTime: true, endTime: true },
+    }),
+  ])
+
+  if (blackout) return []
+  if (schedule && !schedule.isWorkingDay) return []
+  if (!schedule && !((workingDays >> dayOfWeek) & 1)) return []
+
+  const effectiveOpen = schedule ? schedule.startHour : openTime
+  const effectiveClose = schedule ? schedule.endHour : closeTime
 
   const slots: Slot[] = []
-  const openMinutes = openTime * 60
-  const closeMinutes = closeTime * 60
+  const openMinutes = effectiveOpen * 60
+  const closeMinutes = effectiveClose * 60
   let offset = 0
 
   while (openMinutes + offset + duration <= closeMinutes) {
@@ -49,6 +70,50 @@ export async function getAvailableSlots(
   }
 
   return slots
+}
+
+export async function getUnavailableDates(
+  tenantId: string,
+  professionalId: string,
+  weekStartStr: string,
+  workingDays: number = 127  // bitmask bit0=Dom..bit6=Sáb; 127=all open (default)
+): Promise<string[]> {
+  const [y, m, d] = weekStartStr.split('-').map(Number)
+  const weekStart = new Date(Date.UTC(y, m - 1, d))
+  const weekEnd = new Date(Date.UTC(y, m - 1, d + 7))
+
+  const [schedules, blackouts] = await Promise.all([
+    prisma.professionalSchedule.findMany({
+      where: { professionalId },
+      select: { dayOfWeek: true, isWorkingDay: true },
+    }),
+    prisma.blackoutDate.findMany({
+      where: {
+        tenantId,
+        OR: [{ professionalId }, { professionalId: null }],
+        startDate: { lte: weekEnd },
+        endDate: { gte: weekStart },
+      },
+      select: { startDate: true, endDate: true },
+    }),
+  ])
+
+  const unavailable: string[] = []
+  for (let i = 0; i < 7; i++) {
+    const date = new Date(Date.UTC(y, m - 1, d + i))
+    const dateStr = date.toISOString().slice(0, 10)
+    const dow = date.getUTCDay()
+
+    const sched = schedules.find((s) => s.dayOfWeek === dow)
+    if (sched && !sched.isWorkingDay) { unavailable.push(dateStr); continue }
+    if (!sched && !((workingDays >> dow) & 1)) { unavailable.push(dateStr); continue }
+
+    if (blackouts.some((b) => b.startDate <= date && b.endDate >= date)) {
+      unavailable.push(dateStr)
+    }
+  }
+
+  return unavailable
 }
 
 export async function createPublicBooking(data: {//0
@@ -127,18 +192,18 @@ export async function createPublicBooking(data: {//0
     }
   }
 
-  // Register client user if the email doesn't exist yet in the system
+  // Register client user — upsert avoids a race condition when two bookings
+  // arrive simultaneously for the same new email address
   if (data.clientEmail) {
-    const exists = await prisma.user.findUnique({ where: { email: data.clientEmail } })
-    if (!exists) {
-      await prisma.user.create({
-        data: {
-          email: data.clientEmail,
-          role: 'client',
-          tenantId: data.tenantId,
-          passwordHash: null,
-        },
-      })
-    }
+    await prisma.user.upsert({
+      where: { email: data.clientEmail },
+      update: {},
+      create: {
+        email: data.clientEmail,
+        role: 'client',
+        tenantId: data.tenantId,
+        passwordHash: null,
+      },
+    })
   }
 }

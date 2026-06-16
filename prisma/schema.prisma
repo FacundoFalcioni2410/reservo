@@ -33,12 +33,14 @@ model Tenant {
   description String?
   openTime    Int       @default(8)
   closeTime   Int       @default(20)
+  workingDays Int       @default(62)  // bitmask: bit0=Dom...bit6=Sáb, 62=Lun-Vie
   createdAt   DateTime  @default(now())
   users          User[]
   branches       Branch[]
   bookings       Booking[]
   services       Service[]
   emailTemplates EmailTemplate[]
+  blackouts      BlackoutDate[]
 }
 
 model Branch {
@@ -48,6 +50,7 @@ model Branch {
   phone         String?
   openTime      Int?
   closeTime     Int?
+  workingDays   Int?      // nullable override; null = inherit from tenant
   tenantId      String
   tenant        Tenant    @relation(fields: [tenantId], references: [id])
   bookings      Booking[]
@@ -68,6 +71,8 @@ model User {
   bookings             Booking[] @relation("ProfessionalBookings")
   branches             Branch[]  @relation("ProfessionalBranches")
   services             Service[] @relation("ProfessionalServices")
+  schedule             ProfessionalSchedule[] @relation("ProfessionalSchedule")
+  blackouts            BlackoutDate[]         @relation("ProfessionalBlackouts")
   googleAccessToken    String?
   googleRefreshToken   String?
   createdAt            DateTime  @default(now())
@@ -99,6 +104,30 @@ model EmailTemplate {
   updatedAt DateTime          @updatedAt
 
   @@unique([tenantId, type])
+}
+
+model ProfessionalSchedule {
+  id             String  @id @default(cuid())
+  professionalId String
+  professional   User    @relation("ProfessionalSchedule", fields: [professionalId], references: [id], onDelete: Cascade)
+  dayOfWeek      Int     // 0=Dom, 1=Lun, ..., 6=Sáb
+  isWorkingDay   Boolean @default(true)
+  startHour      Int     @default(8)
+  endHour        Int     @default(20)
+
+  @@unique([professionalId, dayOfWeek])
+}
+
+model BlackoutDate {
+  id             String   @id @default(cuid())
+  tenantId       String
+  tenant         Tenant   @relation(fields: [tenantId], references: [id])
+  professionalId String?
+  professional   User?    @relation("ProfessionalBlackouts", fields: [professionalId], references: [id], onDelete: Cascade)
+  startDate      DateTime
+  endDate        DateTime
+  reason         String?
+  createdAt      DateTime @default(now())
 }
 
 model Booking {

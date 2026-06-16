@@ -4,18 +4,12 @@ import { useRouter } from 'next/navigation'
 import NewBookingModal from './NewBookingModal'
 import { updateBookingStatus } from '@/app/actions/bookings'
 import { getWeekStart, toLocalISO, parseLocalDate } from './calendarUtils'
+import { BOOKING_STATUS } from '@/app/lib/bookingStatus'
+import { pad2, addDays, MONTHS_ES } from '@/app/lib/dateUtils'
 
 const PX_PER_HOUR = 64
 
 const DAYS_ES = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb']
-const MONTHS_ES = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic']
-
-const STATUS_STYLES: Record<string, string> = {
-  pending: 'bg-yellow-50 border-yellow-300 text-yellow-900',
-  confirmed: 'bg-blue-50 border-blue-300 text-blue-900',
-  cancelled: 'bg-zinc-100 border-zinc-300 text-zinc-500 line-through',
-  completed: 'bg-green-50 border-green-300 text-green-900',
-}
 
 type BookingData = {
   id: string
@@ -34,18 +28,13 @@ type Branch = { id: string; name: string }
 type ModalPrefill = { date: string; startTime: string; endTime: string }
 
 function getWeekDays(weekStart: Date) {
-  return Array.from({ length: 7 }, (_, i) => {
-    const d = new Date(weekStart)
-    d.setDate(d.getDate() + i)
-    return d
-  })
+  return Array.from({ length: 7 }, (_, i) => addDays(weekStart, i))
 }
 
 function isSameDay(a: Date, b: Date) {
   return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate()
 }
 
-function pad2(n: number) { return String(n).padStart(2, '0') }
 function formatHour(h: number) { return `${pad2(h)}:00` }
 
 function getTop(startISO: string, dayStart: number): number {
@@ -66,7 +55,7 @@ function formatTime(iso: string) {
   return `${pad2(d.getHours())}:${pad2(d.getMinutes())}`
 }
 
-function weekLabel(weekStart: Date) {
+function weekLabel(weekStart: Date): string {
   const end = new Date(weekStart)
   end.setDate(end.getDate() + 6)
   const sameMonth = weekStart.getMonth() === end.getMonth()
@@ -74,12 +63,6 @@ function weekLabel(weekStart: Date) {
     return `${weekStart.getDate()}–${end.getDate()} ${MONTHS_ES[weekStart.getMonth()]} ${weekStart.getFullYear()}`
   }
   return `${weekStart.getDate()} ${MONTHS_ES[weekStart.getMonth()]} – ${end.getDate()} ${MONTHS_ES[end.getMonth()]} ${weekStart.getFullYear()}`
-}
-
-function addDays(date: Date, days: number): Date {
-  const d = new Date(date)
-  d.setDate(d.getDate() + days)
-  return d
 }
 
 // ─── Overlap layout ──────────────────────────────────────────────────────────
@@ -141,6 +124,7 @@ function DayColumn({
   totalHeight,
   onSlotClick,
   onBookingClick,
+  isBlackedOut,
 }: {
   day: Date
   bookings: BookingData[]
@@ -149,12 +133,13 @@ function DayColumn({
   totalHeight: number
   onSlotClick: (date: Date, hour: number) => void
   onBookingClick: (b: BookingData) => void
+  isBlackedOut?: boolean
 }) {
   const isToday = isSameDay(day, new Date())
   const positioned = layoutBookings(bookings)
 
   return (
-    <div className="relative flex-1 border-l border-zinc-100" style={{ height: totalHeight }}>
+    <div className="relative flex-1 border-l border-zinc-100 overflow-hidden" style={{ height: totalHeight }}>
       {hours.map((h) => (
         <div
           key={h}
@@ -163,6 +148,16 @@ function DayColumn({
           onClick={() => onSlotClick(day, h)}
         />
       ))}
+
+      {isBlackedOut && (
+        <div className="absolute inset-0 z-10 pointer-events-none"
+          style={{ backgroundImage: 'repeating-linear-gradient(-45deg, transparent, transparent 6px, rgba(0,0,0,0.03) 6px, rgba(0,0,0,0.03) 12px)' }}
+        >
+          <div className="absolute inset-x-0 top-3 flex justify-center">
+            <span className="bg-white border border-zinc-200 text-zinc-500 text-[10px] font-semibold px-2 py-0.5 rounded-full shadow-sm">Cerrado</span>
+          </div>
+        </div>
+      )}
 
       {positioned.map((b) => {
         const top = getTop(b.startTime, dayStart)
@@ -175,7 +170,7 @@ function DayColumn({
           <div
             key={b.id}
             style={{ top, height, left, right }}
-            className={`absolute rounded border px-1.5 py-0.5 text-xs overflow-hidden cursor-pointer hover:brightness-95 transition ${STATUS_STYLES[b.status] ?? STATUS_STYLES.pending}`}
+            className={`absolute rounded border px-1.5 py-0.5 text-xs overflow-hidden cursor-pointer hover:brightness-95 transition ${(BOOKING_STATUS[b.status] ?? BOOKING_STATUS.pending).calendarClass}`}
             onClick={(e) => { e.stopPropagation(); onBookingClick(b) }}
           >
             <p className="font-medium truncate leading-tight">{b.clientName}</p>
@@ -205,13 +200,6 @@ function DayColumn({
 }
 
 // ─── Booking detail ───────────────────────────────────────────────────────────
-
-const STATUS_LABELS: Record<string, string> = {
-  pending: 'Pendiente',
-  confirmed: 'Confirmado',
-  cancelled: 'Cancelado',
-  completed: 'Completado',
-}
 
 function BookingDetail({ booking, onClose }: { booking: BookingData; onClose: () => void }) {
   const [isPending, startTransition] = useTransition()
@@ -250,8 +238,8 @@ function BookingDetail({ booking, onClose }: { booking: BookingData; onClose: ()
           <div className="flex gap-2">
             <dt className="text-zinc-500 w-24 flex-shrink-0">Estado</dt>
             <dd>
-              <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium border ${STATUS_STYLES[booking.status]}`}>
-                {STATUS_LABELS[booking.status]}
+              <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium border ${(BOOKING_STATUS[booking.status] ?? BOOKING_STATUS.pending).calendarClass}`}>
+                {(BOOKING_STATUS[booking.status] ?? BOOKING_STATUS.pending).label}
               </span>
             </dd>
           </div>
@@ -294,6 +282,7 @@ export default function CalendarView({
   selectedBranchId,
   selectedProfessionalId,
   isPro,
+  blackoutDates = [],
 }: {
   bookings: BookingData[]
   professionals: Professional[]
@@ -304,6 +293,7 @@ export default function CalendarView({
   selectedBranchId: string | null
   selectedProfessionalId?: string | null
   isPro?: boolean
+  blackoutDates?: string[]
 }) {
   const router = useRouter()
   const weekStart = parseLocalDate(weekStartISO)
@@ -456,19 +446,23 @@ export default function CalendarView({
             const active = isSameDay(day, mobileDay)
             const isToday = isSameDay(day, today)
             const count = bookingsForDay(day).length
+            const isBlackedOut = blackoutDates.includes(toLocalISO(day))
             return (
               <button
                 key={day.toISOString()}
                 onClick={() => setMobileDay(day)}
                 className={`flex-shrink-0 flex flex-col items-center px-4 py-2 text-xs font-medium border-b-2 transition cursor-pointer ${
-                  active ? 'border-zinc-900 text-zinc-900' : 'border-transparent text-zinc-400 hover:text-zinc-600'
+                  active ? 'border-zinc-900 text-zinc-900' : isBlackedOut ? 'border-transparent text-zinc-300' : 'border-transparent text-zinc-400 hover:text-zinc-600'
                 }`}
               >
                 <span>{DAYS_ES[day.getDay()]}</span>
-                <span className={`text-sm font-semibold mt-0.5 ${isToday ? 'bg-zinc-900 text-white rounded-full w-6 h-6 flex items-center justify-center' : ''}`}>
+                <span className={`text-sm font-semibold mt-0.5 ${isToday ? 'bg-zinc-900 text-white rounded-full w-6 h-6 flex items-center justify-center' : isBlackedOut ? 'text-zinc-300' : ''}`}>
                   {day.getDate()}
                 </span>
-                {count > 0 && <span className="mt-1 w-1.5 h-1.5 rounded-full bg-blue-500" />}
+                {isBlackedOut
+                  ? <span className="mt-1 text-[8px] font-semibold text-zinc-300 uppercase">Cerrado</span>
+                  : count > 0 && <span className="mt-1 w-1.5 h-1.5 rounded-full bg-blue-500" />
+                }
               </button>
             )
           })}
@@ -489,7 +483,7 @@ export default function CalendarView({
                 <button
                   key={b.id}
                   onClick={() => setDetail(b)}
-                  className={`w-full text-left px-4 py-3 rounded-xl border cursor-pointer transition hover:brightness-95 ${STATUS_STYLES[b.status]}`}
+                  className={`w-full text-left px-4 py-3 rounded-xl border cursor-pointer transition hover:brightness-95 ${(BOOKING_STATUS[b.status] ?? BOOKING_STATUS.pending).calendarClass}`}
                 >
                   <div className="flex items-start justify-between gap-2">
                     <div>
@@ -510,12 +504,14 @@ export default function CalendarView({
           <div className="w-14 flex-shrink-0" />
           {days.map((day) => {
             const isToday = isSameDay(day, today)
+            const dateStr = toLocalISO(day)
+            const isBlackedOut = blackoutDates.includes(dateStr)
             return (
-              <div key={day.toISOString()} className="flex-1 text-center py-2 border-l border-zinc-200 first:border-l-0">
-                <p className={`text-xs font-medium ${isToday ? 'text-blue-600' : 'text-zinc-500'}`}>
+              <div key={day.toISOString()} className={`flex-1 text-center py-2 border-l border-zinc-200 first:border-l-0 ${isBlackedOut ? 'bg-zinc-100' : ''}`}>
+                <p className={`text-xs font-medium ${isToday ? 'text-blue-600' : isBlackedOut ? 'text-zinc-400' : 'text-zinc-500'}`}>
                   {DAYS_ES[day.getDay()]}
                 </p>
-                <p className={`text-sm font-semibold mt-0.5 ${isToday ? 'bg-blue-600 text-white rounded-full w-7 h-7 flex items-center justify-center mx-auto' : 'text-zinc-900'}`}>
+                <p className={`text-sm font-semibold mt-0.5 ${isToday ? 'bg-blue-600 text-white rounded-full w-7 h-7 flex items-center justify-center mx-auto' : isBlackedOut ? 'text-zinc-400 line-through decoration-zinc-300' : 'text-zinc-900'}`}>
                   {day.getDate()}
                 </p>
               </div>
@@ -546,6 +542,7 @@ export default function CalendarView({
               totalHeight={totalHeight}
               onSlotClick={openSlot}
               onBookingClick={setDetail}
+              isBlackedOut={blackoutDates.includes(toLocalISO(day))}
             />
           ))}
         </div>

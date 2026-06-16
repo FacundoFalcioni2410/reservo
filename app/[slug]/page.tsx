@@ -26,6 +26,7 @@ export default async function PublicBookingPage({
       logoUrl: true,
       openTime: true,
       closeTime: true,
+      workingDays: true,
     },
   })
 

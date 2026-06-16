@@ -2,6 +2,7 @@
 import { useState, useTransition, useActionState, useEffect } from 'react'
 import PageHeader from '../../_components/PageHeader'
 import DeleteConfirm from '../../_components/DeleteConfirm'
+import Modal from '@/app/ui/Modal'
 import { createService, updateService, deleteService } from '@/app/actions/services'
 
 function formatDuration(min: number) {
@@ -38,21 +39,8 @@ function ServiceModal({ service, onClose }: { service?: Service; onClose: () => 
   }, [state?.success])
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
-      <div className="absolute inset-0 bg-black/50" onClick={onClose} />
-      <div className="relative bg-white w-full sm:max-w-md sm:rounded-2xl rounded-t-2xl shadow-xl max-h-[92vh] overflow-y-auto">
-        <div className="sticky top-0 bg-white border-b border-zinc-100 px-5 py-4 flex items-center justify-between rounded-t-2xl">
-          <h2 className="text-base font-semibold text-zinc-900">
-            {service ? 'Editar servicio' : 'Nuevo servicio'}
-          </h2>
-          <button onClick={onClose} className="p-1.5 rounded-lg text-zinc-400 hover:text-zinc-600 hover:bg-zinc-100 cursor-pointer transition">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
-            </svg>
-          </button>
-        </div>
-
-        <form action={formAction} className="px-5 py-5 flex flex-col gap-4">
+    <Modal onClose={onClose} title={service ? 'Editar servicio' : 'Nuevo servicio'}>
+      <form action={formAction} className="px-5 py-5 flex flex-col gap-4">
           {service && <input type="hidden" name="id" value={service.id} />}
 
           <div className="flex flex-col gap-1">
@@ -150,9 +138,8 @@ function ServiceModal({ service, onClose }: { service?: Service; onClose: () => 
           >
             {pending ? 'Guardando…' : service ? 'Guardar cambios' : 'Crear servicio'}
           </button>
-        </form>
-      </div>
-    </div>
+      </form>
+    </Modal>
   )
 }
 

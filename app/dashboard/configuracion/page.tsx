@@ -6,6 +6,7 @@ import TenantSettingsForm from './_components/TenantSettingsForm'
 import EmailTemplatesForm from './_components/EmailTemplatesForm'
 import ConfigTabs from './_components/ConfigTabs'
 import IntegrationsSection from './_components/IntegrationsSection'
+import TenantBlackoutManager from './_components/TenantBlackoutManager'
 
 export default async function ConfiguracionPage() {
   const { tenantId, userId, role } = await requireTenantId()
@@ -26,7 +27,7 @@ export default async function ConfiguracionPage() {
   const [tenant, emailTemplates] = await Promise.all([
     prisma.tenant.findUnique({
       where: { id: tenantId },
-      select: { name: true, slug: true, phone: true, description: true, openTime: true, closeTime: true },
+      select: { name: true, slug: true, phone: true, description: true, openTime: true, closeTime: true, workingDays: true },
     }),
     prisma.emailTemplate.findMany({
       where: { tenantId },
@@ -46,6 +47,7 @@ export default async function ConfiguracionPage() {
         general={<TenantSettingsForm tenant={tenant} />}
         emails={<EmailTemplatesForm inviteTemplate={inviteTemplate} bookingTemplate={bookingTemplate} />}
         integraciones={<IntegrationsSection connected={googleConnected} />}
+        bloqueos={<TenantBlackoutManager />}
       />
     </div>
   )

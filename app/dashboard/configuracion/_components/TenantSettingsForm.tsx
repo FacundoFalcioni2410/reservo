@@ -1,5 +1,5 @@
 'use client'
-import { useActionState, useEffect } from 'react'
+import { useState, useActionState } from 'react'
 import { updateTenantSettings } from '@/app/actions/tenant'
 
 type TenantData = {
@@ -9,6 +9,7 @@ type TenantData = {
   description: string | null
   openTime: number
   closeTime: number
+  workingDays: number
 }
 
 const INPUT_CLASS =
@@ -19,6 +20,9 @@ function hourLabel(h: number) {
   return `${String(h).padStart(2, '0')}:00`
 }
 
+const DAY_LABELS = ['Do', 'Lu', 'Ma', 'Mi', 'Ju', 'Vi', 'Sá']
+const DAY_ORDER = [1, 2, 3, 4, 5, 6, 0] // Mon first
+
 function FieldError({ errors, field }: { errors?: Record<string, string[]>; field: string }) {
   const msg = errors?.[field]?.[0]
   if (!msg) return null
@@ -27,6 +31,15 @@ function FieldError({ errors, field }: { errors?: Record<string, string[]>; fiel
 
 export default function TenantSettingsForm({ tenant }: { tenant: TenantData }) {
   const [state, action, pending] = useActionState(updateTenantSettings, undefined)
+  const [workingDaysMask, setWorkingDaysMask] = useState(tenant.workingDays ?? 62)
+
+  function toggleDay(dow: number) {
+    setWorkingDaysMask((prev) => prev ^ (1 << dow))
+  }
+
+  function isDayOn(dow: number) {
+    return ((workingDaysMask >> dow) & 1) === 1
+  }
 
   return (
     <form action={action} className="flex flex-col gap-6">
@@ -121,6 +134,33 @@ export default function TenantSettingsForm({ tenant }: { tenant: TenantData }) {
           </div>
         </div>
         <FieldError errors={state?.errors} field="openTime" />
+      </section>
+
+      {/* ── Días de atención ── */}
+      <section className="bg-white rounded-xl border border-zinc-200 p-5 sm:p-6 flex flex-col gap-4">
+        <div>
+          <h2 className="text-sm font-semibold text-zinc-900">Días de atención</h2>
+          <p className="text-xs text-zinc-400 mt-0.5">
+            Días en que el negocio atiende. Podés sobreescribirlos por sucursal.
+          </p>
+        </div>
+        <input type="hidden" name="workingDays" value={workingDaysMask} />
+        <div className="flex gap-2 flex-wrap">
+          {DAY_ORDER.map((dow) => (
+            <button
+              key={dow}
+              type="button"
+              onClick={() => toggleDay(dow)}
+              className={`w-11 h-11 rounded-lg text-sm font-medium transition cursor-pointer ${
+                isDayOn(dow)
+                  ? 'bg-zinc-900 text-white'
+                  : 'bg-zinc-100 text-zinc-400 hover:bg-zinc-200'
+              }`}
+            >
+              {DAY_LABELS[dow]}
+            </button>
+          ))}
+        </div>
       </section>
 
       {/* ── Feedback + submit ── */}
