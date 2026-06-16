@@ -1,5 +1,6 @@
 import { requireTenantId } from '@/app/lib/dal'
 import { prisma } from '@/lib/prisma'
+import { redirect } from 'next/navigation'
 import PageHeader from '../_components/PageHeader'
 import CalendarView from './_components/CalendarView'
 import { getWeekStart, toLocalISO, parseLocalDate } from './_components/calendarUtils'
@@ -9,7 +10,8 @@ export default async function ReservasPage({
 }: {
   searchParams: Promise<{ week?: string; branch?: string }>
 }) {
-  const { tenantId } = await requireTenantId()
+  const { tenantId, userId, role } = await requireTenantId()
+  const isPro = role === 'professional'
   const { week, branch: branchParam } = await searchParams
 
   const weekStart = week ? getWeekStart(parseLocalDate(week)) : getWeekStart(new Date())
@@ -21,6 +23,7 @@ export default async function ReservasPage({
       where: {
         tenantId,
         startTime: { gte: weekStart, lt: weekEnd },
+        ...(isPro ? { professionalId: userId } : {}),
         ...(branchParam ? { branchId: branchParam } : {}),
       },
       select: {
@@ -35,7 +38,7 @@ export default async function ReservasPage({
       },
       orderBy: { startTime: 'asc' },
     }),
-    prisma.user.findMany({
+    isPro ? Promise.resolve([]) : prisma.user.findMany({
       where: { tenantId, role: 'professional' },
       select: { id: true, email: true },
     }),
@@ -44,7 +47,7 @@ export default async function ReservasPage({
       select: { openTime: true, closeTime: true },
     }),
     prisma.branch.findMany({
-      where: { tenantId },
+      where: { tenantId, ...(isPro ? { professionals: { some: { id: userId } } } : {}) },
       select: { id: true, name: true, openTime: true, closeTime: true },
       orderBy: { createdAt: 'asc' },
     }),
@@ -72,7 +75,7 @@ export default async function ReservasPage({
 
   return (
     <div className="px-4 py-6 sm:px-6 sm:py-6 max-w-full">
-      <PageHeader title="Reservas" description="Turnos y citas del negocio" />
+      <PageHeader title={isPro ? 'Mis reservas' : 'Reservas'} description={isPro ? 'Tu agenda semanal' : 'Turnos y citas del negocio'} />
       <CalendarView
         bookings={serializedBookings}
         professionals={professionals}

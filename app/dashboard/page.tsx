@@ -1,3 +1,4 @@
+import { redirect } from 'next/navigation'
 import { requireTenantId } from '@/app/lib/dal'
 import { prisma } from '@/lib/prisma'
 import Link from 'next/link'
@@ -82,7 +83,8 @@ const SECTIONS = [
 ]
 
 export default async function DashboardPage() {
-  const { tenantId } = await requireTenantId()
+  const { tenantId, role } = await requireTenantId()
+  if (role === 'professional') redirect('/dashboard/reservas')
   const [tenant, branchCount, professionalCount] = await Promise.all([
     prisma.tenant.findUniqueOrThrow({ where: { id: tenantId }, select: { name: true } }),
     prisma.branch.count({ where: { tenantId } }),

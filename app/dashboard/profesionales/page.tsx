@@ -1,9 +1,11 @@
+import { redirect } from 'next/navigation'
 import { requireTenantId } from '@/app/lib/dal'
 import { prisma } from '@/lib/prisma'
 import ProfesionalesClient from './_components/ProfesionalesClient'
 
 export default async function ProfesionalesPage() {
-  const { tenantId } = await requireTenantId()
+  const { tenantId, role } = await requireTenantId()
+  if (role === 'professional') redirect('/dashboard/reservas')
 
   const [professionals, branches, services] = await Promise.all([
     prisma.user.findMany({

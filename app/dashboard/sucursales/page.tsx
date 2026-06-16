@@ -1,10 +1,12 @@
+import { redirect } from 'next/navigation'
 import { requireTenantId } from '@/app/lib/dal'
 import { prisma } from '@/lib/prisma'
 import { notFound } from 'next/navigation'
 import SucursalesClient from './_components/SucursalesClient'
 
 export default async function SucursalesPage() {
-  const { tenantId } = await requireTenantId()
+  const { tenantId, role } = await requireTenantId()
+  if (role === 'professional') redirect('/dashboard/reservas')
 
   const [branches, tenant, allServices] = await Promise.all([
     prisma.branch.findMany({
