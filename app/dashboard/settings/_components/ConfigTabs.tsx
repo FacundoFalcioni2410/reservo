@@ -1,22 +1,22 @@
 'use client'
 import { useRouter, useSearchParams } from 'next/navigation'
 
-type Tab = 'general' | 'emails' | 'integraciones'
+type Tab = 'general' | 'emails' | 'integrations'
 
 const TAB_LABELS: Record<Tab, string> = {
   general: 'General',
   emails: 'Emails',
-  integraciones: 'Integraciones',
+  integrations: 'Integraciones',
 }
 
 export default function ConfigTabs({
   general,
   emails,
-  integraciones,
+  integrations,
 }: {
   general: React.ReactNode
   emails: React.ReactNode
-  integraciones: React.ReactNode
+  integrations: React.ReactNode
 }) {
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -27,13 +27,13 @@ export default function ConfigTabs({
     const params = new URLSearchParams(searchParams.toString())
     if (tab === 'general') params.delete('tab')
     else params.set('tab', tab)
-    router.replace(`/dashboard/configuracion?${params.toString()}`)
+    router.replace(`/dashboard/settings?${params.toString()}`)
   }
 
   return (
     <div>
       <div className="flex gap-1 border-b border-zinc-200 mb-6">
-        {(['general', 'emails', 'integraciones'] as Tab[]).map((tab) => (
+        {(['general', 'emails', 'integrations'] as Tab[]).map((tab) => (
           <button
             key={tab}
             onClick={() => goTab(tab)}
@@ -49,7 +49,7 @@ export default function ConfigTabs({
       </div>
       {active === 'general' && general}
       {active === 'emails' && emails}
-      {active === 'integraciones' && integraciones}
+      {active === 'integrations' && integrations}
     </div>
   )
 }

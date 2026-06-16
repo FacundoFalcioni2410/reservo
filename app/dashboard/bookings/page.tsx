@@ -6,7 +6,7 @@ import CalendarView from './_components/CalendarView'
 import BookingListView from './_components/BookingListView'
 import { getWeekStart, toLocalISO, parseLocalDate } from './_components/calendarUtils'
 
-export default async function ReservasPage({
+export default async function BookingsPage({
   searchParams,
 }: {
   searchParams: Promise<{ week?: string; branch?: string; professional?: string; view?: string }>
@@ -62,7 +62,7 @@ export default async function ReservasPage({
     params.set('week', toLocalISO(weekStart))
     params.set('branch', branches[0].id)
     if (professionalParam) params.set('professional', professionalParam)
-    redirect(`/dashboard/reservas?${params.toString()}`)
+    redirect(`/dashboard/bookings?${params.toString()}`)
   }
 
   // Use selected branch hours if set, fall back to tenant hours

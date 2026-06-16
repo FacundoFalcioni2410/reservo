@@ -1,6 +1,6 @@
 import { requireTenantId } from '@/app/lib/dal'
 import { prisma } from '@/lib/prisma'
-import ServiciosClient from './_components/ServiciosClient'
+import ServicesClient from './_components/ServicesClient'
 import PageHeader from '../_components/PageHeader'
 
 function formatDuration(minutes: number) {
@@ -11,7 +11,7 @@ function formatDuration(minutes: number) {
   return `${h} h ${m} min`
 }
 
-export default async function ServiciosPage() {
+export default async function ServicesPage() {
   const { tenantId, userId, role } = await requireTenantId()
   const isPro = role === 'professional'
 
@@ -59,7 +59,7 @@ export default async function ServiciosPage() {
 
   return (
     <div className="px-4 py-6 sm:px-8 sm:py-8 max-w-2xl mx-auto">
-      <ServiciosClient services={serialized} />
+      <ServicesClient services={serialized} />
     </div>
   )
 }

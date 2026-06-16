@@ -73,7 +73,7 @@ export async function createBooking(state: BookingState, formData: FormData): Pr
     console.error('[google-calendar] createCalendarEvent failed:', err)
   }
 
-  revalidatePath('/dashboard/reservas')
+  revalidatePath('/dashboard/bookings')
   return { success: true }
 }
 
@@ -94,7 +94,7 @@ export async function updateBookingStatus(id: string, status: 'confirmed' | 'can
     }
   }
 
-  revalidatePath('/dashboard/reservas')
+  revalidatePath('/dashboard/bookings')
 }
 
 export async function getBookingsForProfessional(professionalId: string) {

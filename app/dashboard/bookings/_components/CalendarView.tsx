@@ -8,7 +8,7 @@ import { getWeekStart, toLocalISO, parseLocalDate } from './calendarUtils'
 const PX_PER_HOUR = 64
 
 const DAYS_ES = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb']
-const MONTHS_ES = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic']
+const MONTHS_SHORT = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic']
 
 const STATUS_STYLES: Record<string, string> = {
   pending: 'bg-yellow-50 border-yellow-300 text-yellow-900',
@@ -71,9 +71,9 @@ function weekLabel(weekStart: Date) {
   end.setDate(end.getDate() + 6)
   const sameMonth = weekStart.getMonth() === end.getMonth()
   if (sameMonth) {
-    return `${weekStart.getDate()}–${end.getDate()} ${MONTHS_ES[weekStart.getMonth()]} ${weekStart.getFullYear()}`
+    return `${weekStart.getDate()}–${end.getDate()} ${MONTHS_SHORT[weekStart.getMonth()]} ${weekStart.getFullYear()}`
   }
-  return `${weekStart.getDate()} ${MONTHS_ES[weekStart.getMonth()]} – ${end.getDate()} ${MONTHS_ES[end.getMonth()]} ${weekStart.getFullYear()}`
+  return `${weekStart.getDate()} ${MONTHS_SHORT[weekStart.getMonth()]} – ${end.getDate()} ${MONTHS_SHORT[end.getMonth()]} ${weekStart.getFullYear()}`
 }
 
 function addDays(date: Date, days: number): Date {
@@ -326,7 +326,7 @@ export default function CalendarView({
     if (branchId) params.set('branch', branchId)
     const proId = professionalId !== undefined ? professionalId : (selectedProfessionalId ?? null)
     if (proId) params.set('professional', proId)
-    return `/dashboard/reservas?${params.toString()}`
+    return `/dashboard/bookings?${params.toString()}`
   }
 
   function goWeek(offset: number) {
@@ -430,7 +430,7 @@ export default function CalendarView({
         {/* List view toggle — pro only */}
         {isPro && (
           <a
-            href="/dashboard/reservas?view=list"
+            href="/dashboard/bookings?view=list"
             className="text-xs px-3 py-1.5 rounded-lg border border-zinc-200 text-zinc-600 hover:bg-zinc-100 transition font-medium hidden sm:block"
           >
             Lista

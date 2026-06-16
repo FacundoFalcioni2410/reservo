@@ -166,7 +166,7 @@ function BranchModal({
 
 // ─── Main ─────────────────────────────────────────────────────────────────────
 
-export default function SucursalesClient({
+export default function BranchesClient({
   branches,
   tenantHours,
   allServices,

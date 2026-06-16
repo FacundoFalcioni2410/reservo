@@ -158,7 +158,7 @@ function ServiceModal({ service, onClose }: { service?: Service; onClose: () => 
 
 // ─── Main ─────────────────────────────────────────────────────────────────────
 
-export default function ServiciosClient({ services }: { services: Service[] }) {
+export default function ServicesClient({ services }: { services: Service[] }) {
   const [modal, setModal] = useState<'create' | Service | null>(null)
   const [confirmId, setConfirmId] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()

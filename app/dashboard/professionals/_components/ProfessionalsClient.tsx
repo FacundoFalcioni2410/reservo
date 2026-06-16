@@ -288,11 +288,11 @@ function AssignModal({
 
 // ─── Bookings modal ───────────────────────────────────────────────────────────
 
-const MONTHS_ES = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic']
+const MONTHS_SHORT = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic']
 
 function formatDateTime(iso: string) {
   const d = new Date(iso)
-  return `${d.getDate()} ${MONTHS_ES[d.getMonth()]} ${d.getFullYear()} · ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`
+  return `${d.getDate()} ${MONTHS_SHORT[d.getMonth()]} ${d.getFullYear()} · ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`
 }
 
 const STATUS_LABEL: Record<string, { label: string; color: string }> = {
@@ -384,7 +384,7 @@ function BookingsModal({ professionalId, professionalEmail, onClose }: { profess
 
 // ─── Main ─────────────────────────────────────────────────────────────────────
 
-export default function ProfesionalesClient({
+export default function ProfessionalsClient({
   professionals,
   allBranches,
   allServices,

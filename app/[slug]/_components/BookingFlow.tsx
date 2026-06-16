@@ -30,7 +30,7 @@ type Step = 'service' | 'professional' | 'datetime' | 'details' | 'done'
 
 // ─── Date helpers ─────────────────────────────────────────────────────────────
 
-const MONTHS_ES = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre']
+const MONTHS_LONG = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre']
 const DAYS_SHORT = ['Do','Lu','Ma','Mi','Ju','Vi','Sa']
 
 function addDays(d: Date, n: number) {
@@ -46,7 +46,7 @@ function toDateStr(d: Date) {
 function formatDate(dateStr: string) {
   const [y, m, day] = dateStr.split('-').map(Number)
   const d = new Date(y, m - 1, day)
-  return `${d.getDate()} de ${MONTHS_ES[d.getMonth()]} ${d.getFullYear()}`
+  return `${d.getDate()} de ${MONTHS_LONG[d.getMonth()]} ${d.getFullYear()}`
 }
 
 function pad2(n: number) { return String(n).padStart(2, '0') }

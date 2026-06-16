@@ -12,11 +12,11 @@ type BookingItem = {
   professionalId: string | null
 }
 
-const MONTHS_ES = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic']
+const MONTHS_SHORT = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic']
 
 function formatDateTime(iso: string) {
   const d = new Date(iso)
-  return `${d.getDate()} ${MONTHS_ES[d.getMonth()]} ${d.getFullYear()} · ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`
+  return `${d.getDate()} ${MONTHS_SHORT[d.getMonth()]} ${d.getFullYear()} · ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`
 }
 
 const STATUS_LABEL: Record<string, { label: string; color: string }> = {
@@ -58,7 +58,7 @@ export default function BookingListView({ upcoming, past }: { upcoming: BookingI
     <div>
       <div className="flex items-center gap-2 mb-4">
         <Link
-          href="/dashboard/reservas"
+          href="/dashboard/bookings"
           className="text-sm px-3 py-1.5 rounded-lg bg-zinc-100 text-zinc-700 hover:bg-zinc-200 transition font-medium"
         >
           ← Vista semana

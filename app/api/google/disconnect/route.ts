@@ -7,7 +7,7 @@ export async function POST() {
   await disconnectGoogleCalendar(userId)
   const appUrl = process.env.APP_URL ?? 'http://localhost:3000'
   const redirect = role === 'professional'
-    ? `${appUrl}/pro/configuracion`
-    : `${appUrl}/dashboard/configuracion?tab=integraciones`
+    ? `${appUrl}/pro/settings`
+    : `${appUrl}/dashboard/settings?tab=integrations`
   return NextResponse.redirect(redirect)
 }

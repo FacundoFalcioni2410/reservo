@@ -32,6 +32,6 @@ export async function upsertEmailTemplate(
     update: { subject, body },
   })
 
-  revalidatePath('/dashboard/configuracion')
+  revalidatePath('/dashboard/settings')
   return { success: true, message: 'Template guardado.' }
 }

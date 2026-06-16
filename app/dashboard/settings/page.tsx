@@ -7,7 +7,7 @@ import EmailTemplatesForm from './_components/EmailTemplatesForm'
 import ConfigTabs from './_components/ConfigTabs'
 import IntegrationsSection from './_components/IntegrationsSection'
 
-export default async function ConfiguracionPage() {
+export default async function SettingsPage() {
   const { tenantId, userId, role } = await requireTenantId()
   const isPro = role === 'professional'
 
@@ -45,7 +45,7 @@ export default async function ConfiguracionPage() {
       <ConfigTabs
         general={<TenantSettingsForm tenant={tenant} />}
         emails={<EmailTemplatesForm inviteTemplate={inviteTemplate} bookingTemplate={bookingTemplate} />}
-        integraciones={<IntegrationsSection connected={googleConnected} />}
+        integrations={<IntegrationsSection connected={googleConnected} />}
       />
     </div>
   )
