@@ -26,10 +26,13 @@ export async function createProfessional(state: ProfState, formData: FormData): 
   if (existing) return { errors: { email: ['Ya existe un usuario con ese email.'] } }
 
   if (sendInvite) {
-    const tenant = await prisma.tenant.findUnique({
-      where: { id: tenantId },
-      select: { name: true },
-    })
+    const [tenant, template] = await Promise.all([
+      prisma.tenant.findUnique({ where: { id: tenantId }, select: { name: true } }),
+      prisma.emailTemplate.findUnique({
+        where: { tenantId_type: { tenantId, type: 'invite' } },
+        select: { subject: true, body: true },
+      }),
+    ])
 
     const inviteToken = randomBytes(32).toString('hex')
     const inviteExpiry = new Date(Date.now() + 48 * 60 * 60 * 1000)
@@ -43,7 +46,7 @@ export async function createProfessional(state: ProfState, formData: FormData): 
 
     // Try to send email — if it fails we still return the link so the admin can share it manually
     try {
-      await sendInviteEmail({ to: email, inviteUrl, tenantName: tenant?.name ?? 'Reservo' })
+      await sendInviteEmail({ to: email, inviteUrl, tenantName: tenant?.name ?? 'Reservo', template })
     } catch (err) {
       console.warn('[email] Could not send invite email, returning link for manual sharing:', err)
     }

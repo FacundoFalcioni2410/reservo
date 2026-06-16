@@ -1,5 +1,6 @@
 'use server'
 import { prisma } from '@/lib/prisma'
+import { sendBookingConfirmationEmail } from '@/app/lib/email'
 
 export type Slot = { hour: number; minute: number; available: boolean }
 
@@ -50,7 +51,7 @@ export async function getAvailableSlots(
   return slots
 }
 
-export async function createPublicBooking(data: {
+export async function createPublicBooking(data: {//0
   tenantId: string
   professionalId: string
   serviceId: string | null
@@ -93,6 +94,38 @@ export async function createPublicBooking(data: {
       status: 'pending',
     },
   })
+
+  // Send booking confirmation email
+  if (data.clientEmail) {
+    const [tenant, professional, template] = await Promise.all([
+      prisma.tenant.findUnique({ where: { id: data.tenantId }, select: { name: true } }),
+      data.professionalId
+        ? prisma.user.findUnique({ where: { id: data.professionalId }, select: { email: true } })
+        : null,
+      prisma.emailTemplate.findUnique({
+        where: { tenantId_type: { tenantId: data.tenantId, type: 'booking_confirmation' } },
+        select: { subject: true, body: true },
+      }),
+    ])
+
+    const professionalName = professional?.email
+      ? professional.email.split('@')[0].replace(/[._-]/g, ' ')
+      : 'el profesional'
+
+    try {
+      await sendBookingConfirmationEmail({
+        to: data.clientEmail,
+        clientName: data.clientName,
+        serviceName: serviceName ?? 'Servicio',
+        professionalName,
+        startTime,
+        tenantName: tenant?.name ?? 'Reservo',
+        template,
+      })
+    } catch (err) {
+      console.warn('[email] Could not send booking confirmation email:', err)
+    }
+  }
 
   // Register client user if the email doesn't exist yet in the system
   if (data.clientEmail) {
