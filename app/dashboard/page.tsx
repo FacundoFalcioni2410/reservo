@@ -7,7 +7,7 @@ const SECTIONS = [
   {
     label: 'Reservas',
     description: 'Ver y gestionar los turnos agendados',
-    href: '/dashboard/reservas',
+    href: '/dashboard/bookings',
     icon: (
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
         <rect width="18" height="18" x="3" y="4" rx="2" ry="2" />
@@ -21,7 +21,7 @@ const SECTIONS = [
   {
     label: 'Profesionales',
     description: 'Administrar el equipo de trabajo',
-    href: '/dashboard/profesionales',
+    href: '/dashboard/professionals',
     icon: (
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
         <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
@@ -34,7 +34,7 @@ const SECTIONS = [
   {
     label: 'Servicios',
     description: 'Configurar los servicios ofrecidos',
-    href: '/dashboard/servicios',
+    href: '/dashboard/services',
     icon: (
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
         <path d="M20 7h-9" />
@@ -47,7 +47,7 @@ const SECTIONS = [
   {
     label: 'Sucursales',
     description: 'Gestionar ubicaciones del negocio',
-    href: '/dashboard/sucursales',
+    href: '/dashboard/branches',
     icon: (
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
         <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
@@ -59,7 +59,7 @@ const SECTIONS = [
   {
     label: 'Clientes',
     description: 'Ver y gestionar la base de clientes',
-    href: '/dashboard/clientes',
+    href: '/dashboard/clients',
     icon: (
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
         <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
@@ -72,7 +72,7 @@ const SECTIONS = [
   {
     label: 'Configuración',
     description: 'Ajustes y datos del negocio',
-    href: '/dashboard/configuracion',
+    href: '/dashboard/settings',
     icon: (
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
         <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" />
@@ -84,7 +84,7 @@ const SECTIONS = [
 
 export default async function DashboardPage() {
   const { tenantId, role } = await requireTenantId()
-  if (role === 'professional') redirect('/dashboard/reservas')
+  if (role === 'professional') redirect('/dashboard/bookings')
 
   const now = new Date()
   const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate())

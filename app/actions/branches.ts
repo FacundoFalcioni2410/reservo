@@ -47,7 +47,7 @@ export async function createBranch(state: BranchState, formData: FormData): Prom
     },
   })
 
-  revalidatePath('/dashboard/sucursales')
+  revalidatePath('/dashboard/branches')
   return { success: true }
 }
 
@@ -77,12 +77,12 @@ export async function updateBranch(state: BranchState, formData: FormData): Prom
     },
   })
 
-  revalidatePath('/dashboard/sucursales')
+  revalidatePath('/dashboard/branches')
   return { success: true }
 }
 
 export async function deleteBranch(id: string): Promise<void> {
   const { tenantId } = await requireTenantId()
   await prisma.branch.deleteMany({ where: { id, tenantId } })
-  revalidatePath('/dashboard/sucursales')
+  revalidatePath('/dashboard/branches')
 }

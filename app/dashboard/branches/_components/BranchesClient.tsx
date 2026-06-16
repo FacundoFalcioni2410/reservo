@@ -230,7 +230,7 @@ function BranchModal({
 
 // ─── Main ─────────────────────────────────────────────────────────────────────
 
-export default function SucursalesClient({
+export default function BranchesClient({
   branches,
   tenantDefaults,
   allServices,

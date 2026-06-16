@@ -6,7 +6,7 @@ import CalendarView from './_components/CalendarView'
 import BookingListView from './_components/BookingListView'
 import { getWeekStart, toLocalISO, parseLocalDate } from './_components/calendarUtils'
 
-export default async function ReservasPage({
+export default async function BookingsPage({
   searchParams,
 }: {
   searchParams: Promise<{ week?: string; branch?: string; professional?: string; view?: string }>
@@ -23,7 +23,7 @@ export default async function ReservasPage({
 
   const now = new Date()
 
-  const [bookings, professionals, tenant, branches, blackoutsRaw] = await Promise.all([
+  const [bookings, professionals, tenant, branches, blackoutsRaw, proSchedule] = await Promise.all([
     isListView
       ? prisma.booking.findMany({
           where: { tenantId, professionalId: userId },
@@ -47,11 +47,11 @@ export default async function ReservasPage({
     }),
     prisma.tenant.findUnique({
       where: { id: tenantId },
-      select: { openTime: true, closeTime: true },
+      select: { openTime: true, closeTime: true, workingDays: true },
     }),
     prisma.branch.findMany({
       where: { tenantId, ...(isPro ? { professionals: { some: { id: userId } } } : {}) },
-      select: { id: true, name: true, openTime: true, closeTime: true },
+      select: { id: true, name: true, openTime: true, closeTime: true, workingDays: true },
       orderBy: { createdAt: 'asc' },
     }),
     isPro ? Promise.resolve([]) : prisma.blackoutDate.findMany({
@@ -66,6 +66,13 @@ export default async function ReservasPage({
       },
       select: { startDate: true, endDate: true },
     }),
+    // Fetch professional schedule when filtering by a specific professional
+    !isPro && professionalParam
+      ? prisma.professionalSchedule.findMany({
+          where: { professionalId: professionalParam },
+          select: { dayOfWeek: true, isWorkingDay: true },
+        })
+      : Promise.resolve([]),
   ])
 
   // When multiple branches exist and none is selected, default to the first
@@ -74,17 +81,22 @@ export default async function ReservasPage({
     params.set('week', toLocalISO(weekStart))
     params.set('branch', branches[0].id)
     if (professionalParam) params.set('professional', professionalParam)
-    redirect(`/dashboard/reservas?${params.toString()}`)
+    redirect(`/dashboard/bookings?${params.toString()}`)
   }
 
   // Use selected branch hours if set, fall back to tenant hours
   let dayStart = tenant?.openTime ?? 8
   let dayEnd = tenant?.closeTime ?? 20
+  // Effective working days: branch override → tenant fallback
+  let effectiveWorkingDays = tenant?.workingDays ?? 62
   if (branchParam) {
     const selectedBranch = branches.find((b) => b.id === branchParam)
     if (selectedBranch) {
       dayStart = selectedBranch.openTime ?? dayStart
       dayEnd = selectedBranch.closeTime ?? dayEnd
+      if (selectedBranch.workingDays !== null) {
+        effectiveWorkingDays = selectedBranch.workingDays
+      }
     }
   }
 
@@ -97,13 +109,32 @@ export default async function ReservasPage({
 
   const serializedBranches = branches.map((b) => ({ id: b.id, name: b.name }))
 
-  // Expand blackout date ranges into individual YYYY-MM-DD strings for the current week
+  // Build blackout dates: explicit blackout ranges + closed working days + professional non-working days
   const blackoutDates: string[] = []
   for (let i = 0; i < 7; i++) {
     const d = new Date(weekStart)
     d.setDate(d.getDate() + i)
     const dateStr = toLocalISO(d)
+    const dow = d.getDay()
+
+    // Explicit blackout date range
     if (blackoutsRaw.some((b) => b.startDate.toISOString().slice(0, 10) <= dateStr && dateStr <= b.endDate.toISOString().slice(0, 10))) {
+      blackoutDates.push(dateStr)
+      continue
+    }
+
+    // Professional schedule non-working day (when filtering by a specific professional)
+    if (proSchedule.length > 0) {
+      const sched = proSchedule.find((s) => s.dayOfWeek === dow)
+      if (sched) {
+        if (!sched.isWorkingDay) { blackoutDates.push(dateStr); continue }
+        // Professional has this day as working — skip tenant/branch working days check
+        continue
+      }
+    }
+
+    // Tenant/branch non-working day
+    if (!((effectiveWorkingDays >> dow) & 1)) {
       blackoutDates.push(dateStr)
     }
   }

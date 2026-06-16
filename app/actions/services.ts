@@ -26,9 +26,9 @@ export async function createService(state: ServiceState, formData: FormData): Pr
     data: { name, description, imageUrl, price, duration, tenantId },
   })
 
-  revalidatePath('/dashboard/servicios')
-  revalidatePath('/dashboard/sucursales')
-  revalidatePath('/dashboard/profesionales')
+  revalidatePath('/dashboard/services')
+  revalidatePath('/dashboard/branches')
+  revalidatePath('/dashboard/professionals')
   return { success: true }
 }
 
@@ -49,14 +49,14 @@ export async function updateService(state: ServiceState, formData: FormData): Pr
     data: { name, description, imageUrl, price, duration },
   })
 
-  revalidatePath('/dashboard/servicios')
+  revalidatePath('/dashboard/services')
   return { success: true }
 }
 
 export async function deleteService(id: string): Promise<void> {
   const { tenantId } = await requireTenantId()
   await prisma.service.deleteMany({ where: { id, tenantId } })
-  revalidatePath('/dashboard/servicios')
-  revalidatePath('/dashboard/sucursales')
-  revalidatePath('/dashboard/profesionales')
+  revalidatePath('/dashboard/services')
+  revalidatePath('/dashboard/branches')
+  revalidatePath('/dashboard/professionals')
 }

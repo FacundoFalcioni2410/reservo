@@ -36,7 +36,7 @@ export default function BookingListView({ upcoming, past }: { upcoming: BookingI
     <div>
       <div className="flex items-center gap-2 mb-4">
         <Link
-          href="/dashboard/reservas"
+          href="/dashboard/bookings"
           className="text-sm px-3 py-1.5 rounded-lg bg-zinc-100 text-zinc-700 hover:bg-zinc-200 transition font-medium"
         >
           ← Vista semana

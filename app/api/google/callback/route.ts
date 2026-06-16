@@ -9,8 +9,8 @@ export async function GET(req: NextRequest) {
 
   const [userId, role] = state?.split(':') ?? []
   const configUrl = role === 'professional'
-    ? `${appUrl}/pro/configuracion`
-    : `${appUrl}/dashboard/configuracion?tab=integraciones`
+    ? `${appUrl}/pro/settings`
+    : `${appUrl}/dashboard/settings?tab=integrations`
 
   if (!code || !userId) {
     return NextResponse.redirect(`${configUrl}?error=google_auth_failed`)

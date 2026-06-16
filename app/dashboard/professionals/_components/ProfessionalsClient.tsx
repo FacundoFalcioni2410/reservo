@@ -335,7 +335,7 @@ function BookingsModal({ professionalId, professionalEmail, onClose }: { profess
 
 // ─── Main ─────────────────────────────────────────────────────────────────────
 
-export default function ProfesionalesClient({
+export default function ProfessionalsClient({
   professionals,
   allBranches,
   allServices,

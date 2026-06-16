@@ -1,11 +1,11 @@
 import { requireTenantId } from '@/app/lib/dal'
 import { prisma } from '@/lib/prisma'
 import PageHeader from '../_components/PageHeader'
-import ClientesList from '../pro/clientes/_components/ClientesList'
-import ClientesAdminList from './_components/ClientesAdminList'
+import ClientsList from '../pro/clients/_components/ClientsList'
+import ClientsAdminList from './_components/ClientsAdminList'
 
 
-export default async function ClientesPage() {
+export default async function ClientsPage() {
   const { tenantId, userId, role } = await requireTenantId()
   const isPro = role === 'professional'
 
@@ -27,7 +27,7 @@ export default async function ClientesPage() {
     return (
       <div className="px-4 py-6 sm:px-8 sm:py-8 max-w-2xl mx-auto">
         <PageHeader title="Mis clientes" description={`${clients.length} cliente${clients.length !== 1 ? 's' : ''}`} />
-        <ClientesList clients={clients} />
+        <ClientsList clients={clients} />
       </div>
     )
   }
@@ -57,7 +57,7 @@ export default async function ClientesPage() {
     <div className="px-4 py-6 sm:px-8 sm:py-8 max-w-2xl mx-auto">
       <PageHeader title="Clientes" description={`${clients.length} cliente${clients.length !== 1 ? 's' : ''} registrado${clients.length !== 1 ? 's' : ''}`} />
 
-      <ClientesAdminList clients={clients} />
+      <ClientsAdminList clients={clients} />
     </div>
   )
 }

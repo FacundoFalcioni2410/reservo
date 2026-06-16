@@ -19,11 +19,11 @@ type BookingItem = {
   status: string
 }
 
-const MONTHS_ES = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic']
+const MONTHS_SHORT = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic']
 
 function formatDate(d: Date | string) {
   const date = typeof d === 'string' ? new Date(d) : d
-  return `${date.getDate()} ${MONTHS_ES[date.getMonth()]} ${date.getFullYear()}`
+  return `${date.getDate()} ${MONTHS_SHORT[date.getMonth()]} ${date.getFullYear()}`
 }
 
 function formatTime(iso: string) {
@@ -126,7 +126,7 @@ function ClientBookingsModal({ client, onClose }: { client: AdminClient; onClose
   )
 }
 
-export default function ClientesAdminList({ clients }: { clients: AdminClient[] }) {
+export default function ClientsAdminList({ clients }: { clients: AdminClient[] }) {
   const [selected, setSelected] = useState<AdminClient | null>(null)
 
   if (clients.length === 0) {

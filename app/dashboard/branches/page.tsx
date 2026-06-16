@@ -2,11 +2,11 @@ import { redirect } from 'next/navigation'
 import { requireTenantId } from '@/app/lib/dal'
 import { prisma } from '@/lib/prisma'
 import { notFound } from 'next/navigation'
-import SucursalesClient from './_components/SucursalesClient'
+import BranchesClient from './_components/BranchesClient'
 
-export default async function SucursalesPage() {
+export default async function BranchesPage() {
   const { tenantId, role } = await requireTenantId()
-  if (role === 'professional') redirect('/dashboard/reservas')
+  if (role === 'professional') redirect('/dashboard/bookings')
 
   const [branches, tenant, allServices] = await Promise.all([
     prisma.branch.findMany({
@@ -44,7 +44,7 @@ export default async function SucursalesPage() {
 
   return (
     <div className="px-4 py-6 sm:px-8 sm:py-8 max-w-2xl mx-auto">
-      <SucursalesClient
+      <BranchesClient
         branches={serializedBranches}
         tenantDefaults={{
           openTime: tenant.openTime,

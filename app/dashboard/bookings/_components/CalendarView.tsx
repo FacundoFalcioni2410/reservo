@@ -5,11 +5,11 @@ import NewBookingModal from './NewBookingModal'
 import { updateBookingStatus } from '@/app/actions/bookings'
 import { getWeekStart, toLocalISO, parseLocalDate } from './calendarUtils'
 import { BOOKING_STATUS } from '@/app/lib/bookingStatus'
-import { pad2, addDays, MONTHS_ES } from '@/app/lib/dateUtils'
+import { pad2, addDays, MONTHS_SHORT } from '@/app/lib/dateUtils'
 
 const PX_PER_HOUR = 64
 
-const DAYS_ES = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb']
+const DAYS_SHORT = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb']
 
 type BookingData = {
   id: string
@@ -60,9 +60,9 @@ function weekLabel(weekStart: Date): string {
   end.setDate(end.getDate() + 6)
   const sameMonth = weekStart.getMonth() === end.getMonth()
   if (sameMonth) {
-    return `${weekStart.getDate()}–${end.getDate()} ${MONTHS_ES[weekStart.getMonth()]} ${weekStart.getFullYear()}`
+    return `${weekStart.getDate()}–${end.getDate()} ${MONTHS_SHORT[weekStart.getMonth()]} ${weekStart.getFullYear()}`
   }
-  return `${weekStart.getDate()} ${MONTHS_ES[weekStart.getMonth()]} – ${end.getDate()} ${MONTHS_ES[end.getMonth()]} ${weekStart.getFullYear()}`
+  return `${weekStart.getDate()} ${MONTHS_SHORT[weekStart.getMonth()]} – ${end.getDate()} ${MONTHS_SHORT[end.getMonth()]} ${weekStart.getFullYear()}`
 }
 
 // ─── Overlap layout ──────────────────────────────────────────────────────────
@@ -316,7 +316,7 @@ export default function CalendarView({
     if (branchId) params.set('branch', branchId)
     const proId = professionalId !== undefined ? professionalId : (selectedProfessionalId ?? null)
     if (proId) params.set('professional', proId)
-    return `/dashboard/reservas?${params.toString()}`
+    return `/dashboard/bookings?${params.toString()}`
   }
 
   function goWeek(offset: number) {
@@ -420,7 +420,7 @@ export default function CalendarView({
         {/* List view toggle — pro only */}
         {isPro && (
           <a
-            href="/dashboard/reservas?view=list"
+            href="/dashboard/bookings?view=list"
             className="text-xs px-3 py-1.5 rounded-lg border border-zinc-200 text-zinc-600 hover:bg-zinc-100 transition font-medium hidden sm:block"
           >
             Lista
@@ -455,7 +455,7 @@ export default function CalendarView({
                   active ? 'border-zinc-900 text-zinc-900' : isBlackedOut ? 'border-transparent text-zinc-300' : 'border-transparent text-zinc-400 hover:text-zinc-600'
                 }`}
               >
-                <span>{DAYS_ES[day.getDay()]}</span>
+                <span>{DAYS_SHORT[day.getDay()]}</span>
                 <span className={`text-sm font-semibold mt-0.5 ${isToday ? 'bg-zinc-900 text-white rounded-full w-6 h-6 flex items-center justify-center' : isBlackedOut ? 'text-zinc-300' : ''}`}>
                   {day.getDate()}
                 </span>
@@ -509,7 +509,7 @@ export default function CalendarView({
             return (
               <div key={day.toISOString()} className={`flex-1 text-center py-2 border-l border-zinc-200 first:border-l-0 ${isBlackedOut ? 'bg-zinc-100' : ''}`}>
                 <p className={`text-xs font-medium ${isToday ? 'text-blue-600' : isBlackedOut ? 'text-zinc-400' : 'text-zinc-500'}`}>
-                  {DAYS_ES[day.getDay()]}
+                  {DAYS_SHORT[day.getDay()]}
                 </p>
                 <p className={`text-sm font-semibold mt-0.5 ${isToday ? 'bg-blue-600 text-white rounded-full w-7 h-7 flex items-center justify-center mx-auto' : isBlackedOut ? 'text-zinc-400 line-through decoration-zinc-300' : 'text-zinc-900'}`}>
                   {day.getDate()}

@@ -43,6 +43,6 @@ export async function updateTenantSettings(
   })
 
   revalidatePath('/dashboard')
-  revalidatePath('/dashboard/configuracion')
+  revalidatePath('/dashboard/settings')
   return { success: true, message: 'Cambios guardados.' }
 }

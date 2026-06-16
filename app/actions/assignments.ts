@@ -27,7 +27,7 @@ export async function updateProfessionalAssignments(
     },
   })
 
-  revalidatePath('/dashboard/profesionales')
-  revalidatePath('/dashboard/sucursales')
+  revalidatePath('/dashboard/professionals')
+  revalidatePath('/dashboard/branches')
   return { success: true }
 }

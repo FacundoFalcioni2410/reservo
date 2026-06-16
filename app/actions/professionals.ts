@@ -51,7 +51,7 @@ export async function createProfessional(state: ProfState, formData: FormData): 
       console.warn('[email] Could not send invite email, returning link for manual sharing:', err)
     }
 
-    revalidatePath('/dashboard/profesionales')
+    revalidatePath('/dashboard/professionals')
     return { success: true, inviteUrl }
   } else {
     const passwordHash = await bcrypt.hash(password, 10)
@@ -60,12 +60,12 @@ export async function createProfessional(state: ProfState, formData: FormData): 
     })
   }
 
-  revalidatePath('/dashboard/profesionales')
+  revalidatePath('/dashboard/professionals')
   return { success: true }
 }
 
 export async function deleteProfessional(id: string): Promise<void> {
   const { tenantId } = await requireTenantId()
   await prisma.user.deleteMany({ where: { id, tenantId, role: 'professional' } })
-  revalidatePath('/dashboard/profesionales')
+  revalidatePath('/dashboard/professionals')
 }

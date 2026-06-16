@@ -16,11 +16,11 @@ type Client = {
   bookings: Booking[]
 }
 
-const MONTHS_ES = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic']
+const MONTHS_SHORT = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic']
 
 function formatDate(iso: string) {
   const d = new Date(iso)
-  return `${d.getDate()} ${MONTHS_ES[d.getMonth()]} ${d.getFullYear()}`
+  return `${d.getDate()} ${MONTHS_SHORT[d.getMonth()]} ${d.getFullYear()}`
 }
 
 function formatTime(iso: string) {
@@ -39,7 +39,7 @@ const STATUS_LABEL: Record<string, { label: string; color: string }> = {
   cancelled: { label: 'Cancelada',  color: 'bg-red-100 text-red-600' },
 }
 
-export default function ClientesList({ clients }: { clients: Client[] }) {
+export default function ClientsList({ clients }: { clients: Client[] }) {
   const [expanded, setExpanded] = useState<string | null>(null)
 
   if (clients.length === 0) {
