@@ -85,10 +85,17 @@ const SECTIONS = [
 export default async function DashboardPage() {
   const { tenantId, role } = await requireTenantId()
   if (role === 'professional') redirect('/dashboard/reservas')
-  const [tenant, branchCount, professionalCount] = await Promise.all([
+
+  const now = new Date()
+  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+  const todayEnd = new Date(todayStart)
+  todayEnd.setDate(todayEnd.getDate() + 1)
+
+  const [tenant, branchCount, professionalCount, todayBookingCount] = await Promise.all([
     prisma.tenant.findUniqueOrThrow({ where: { id: tenantId }, select: { name: true } }),
     prisma.branch.count({ where: { tenantId } }),
     prisma.user.count({ where: { tenantId, role: 'professional' } }),
+    prisma.booking.count({ where: { tenantId, startTime: { gte: todayStart, lt: todayEnd } } }),
   ])
 
   return (
@@ -102,7 +109,7 @@ export default async function DashboardPage() {
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4 mb-6 sm:mb-8">
         <div className="bg-white rounded-xl border border-zinc-200 px-4 py-4 sm:px-5">
           <p className="text-xs font-medium text-zinc-500 uppercase tracking-wide">Reservas hoy</p>
-          <p className="text-2xl font-semibold text-zinc-900 mt-1">—</p>
+          <p className="text-2xl font-semibold text-zinc-900 mt-1">{todayBookingCount}</p>
         </div>
         <div className="bg-white rounded-xl border border-zinc-200 px-4 py-4 sm:px-5">
           <p className="text-xs font-medium text-zinc-500 uppercase tracking-wide">Profesionales</p>

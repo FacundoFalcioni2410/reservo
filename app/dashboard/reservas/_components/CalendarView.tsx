@@ -28,7 +28,8 @@ type BookingData = {
   professionalId: string | null
 }
 
-type Professional = { id: string; email: string }
+type Service = { id: string; name: string }
+type Professional = { id: string; email: string; services: Service[] }
 type Branch = { id: string; name: string }
 type ModalPrefill = { date: string; startTime: string; endTime: string }
 
@@ -291,6 +292,8 @@ export default function CalendarView({
   dayEnd,
   branches,
   selectedBranchId,
+  selectedProfessionalId,
+  isPro,
 }: {
   bookings: BookingData[]
   professionals: Professional[]
@@ -299,6 +302,8 @@ export default function CalendarView({
   dayEnd: number
   branches: Branch[]
   selectedBranchId: string | null
+  selectedProfessionalId?: string | null
+  isPro?: boolean
 }) {
   const router = useRouter()
   const weekStart = parseLocalDate(weekStartISO)
@@ -315,10 +320,12 @@ export default function CalendarView({
     return todayInWeek ?? days[0]
   })
 
-  function buildUrl(weekDate: Date, branchId: string | null) {
+  function buildUrl(weekDate: Date, branchId: string | null, professionalId?: string | null) {
     const params = new URLSearchParams()
     params.set('week', toLocalISO(weekDate))
     if (branchId) params.set('branch', branchId)
+    const proId = professionalId !== undefined ? professionalId : (selectedProfessionalId ?? null)
+    if (proId) params.set('professional', proId)
     return `/dashboard/reservas?${params.toString()}`
   }
 
@@ -332,6 +339,10 @@ export default function CalendarView({
 
   function selectBranch(branchId: string | null) {
     router.push(buildUrl(weekStart, branchId))
+  }
+
+  function selectProfessional(professionalId: string | null) {
+    router.push(buildUrl(weekStart, selectedBranchId, professionalId))
   }
 
   function openSlot(date: Date, hour: number) {
@@ -386,22 +397,45 @@ export default function CalendarView({
           </button>
         </div>
 
-        {/* Branch selector — only when multiple branches */}
+        {/* Branch selector — only when multiple branches, always one at a time */}
         {branches.length > 1 && (
           <select
-            value={selectedBranchId ?? ''}
-            onChange={(e) => selectBranch(e.target.value || null)}
-            className="text-sm border border-zinc-200 rounded-lg px-2.5 py-1.5 text-zinc-700 bg-white hover:border-zinc-300 focus:outline-none focus:ring-2 focus:ring-zinc-900 cursor-pointer transition"
+            value={selectedBranchId ?? branches[0].id}
+            onChange={(e) => selectBranch(e.target.value)}
+            className="text-sm border border-zinc-200 rounded-lg px-2.5 py-1.5 text-zinc-700 bg-white focus:outline-none focus:ring-2 focus:ring-zinc-900 cursor-pointer"
           >
-            <option value="">Todas las sucursales</option>
             {branches.map((b) => (
               <option key={b.id} value={b.id}>{b.name}</option>
             ))}
           </select>
         )}
 
+        {/* Professional selector — admin only */}
+        {!isPro && professionals.length > 0 && (
+          <select
+            value={selectedProfessionalId ?? ''}
+            onChange={(e) => selectProfessional(e.target.value || null)}
+            className="text-sm border border-zinc-200 rounded-lg px-2.5 py-1.5 text-zinc-700 bg-white focus:outline-none focus:ring-2 focus:ring-zinc-900 cursor-pointer"
+          >
+            <option value="">Todos los profesionales</option>
+            {professionals.map((p) => (
+              <option key={p.id} value={p.id}>{p.email}</option>
+            ))}
+          </select>
+        )}
+
         {/* Spacer */}
         <div className="flex-1" />
+
+        {/* List view toggle — pro only */}
+        {isPro && (
+          <a
+            href="/dashboard/reservas?view=list"
+            className="text-xs px-3 py-1.5 rounded-lg border border-zinc-200 text-zinc-600 hover:bg-zinc-100 transition font-medium hidden sm:block"
+          >
+            Lista
+          </a>
+        )}
 
         <button
           onClick={openNew}

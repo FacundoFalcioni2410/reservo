@@ -80,7 +80,7 @@ function PickerCard({ onClick, children }: { onClick: () => void; children: Reac
   return (
     <button
       onClick={onClick}
-      className="bg-white rounded-xl border border-zinc-200 p-4 flex items-center gap-3 text-left hover:border-zinc-400 hover:shadow-sm cursor-pointer transition w-full"
+      className="bg-white rounded-xl border border-zinc-200 p-4 flex items-center gap-3 text-left hover:bg-zinc-50 cursor-pointer w-full"
     >
       {children}
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-zinc-300 flex-shrink-0 ml-auto">

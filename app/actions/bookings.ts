@@ -11,7 +11,7 @@ export async function createBooking(state: BookingState, formData: FormData): Pr
 
   const clientName = (formData.get('clientName') as string)?.trim()
   const clientPhone = (formData.get('clientPhone') as string)?.trim() || null
-  const serviceName = (formData.get('serviceName') as string)?.trim() || null
+  const serviceId = (formData.get('serviceId') as string) || null
   const professionalId = (formData.get('professionalId') as string) || null
   const notes = (formData.get('notes') as string)?.trim() || null
   const date = formData.get('date') as string
@@ -32,11 +32,18 @@ export async function createBooking(state: BookingState, formData: FormData): Pr
     return { error: 'La hora de fin debe ser posterior al inicio.' }
   }
 
+  let serviceName: string | null = null
+  if (serviceId) {
+    const service = await prisma.service.findUnique({ where: { id: serviceId }, select: { name: true } })
+    serviceName = service?.name ?? null
+  }
+
   const booking = await prisma.booking.create({
     data: {
       tenantId,
       clientName,
       clientPhone,
+      serviceId,
       serviceName,
       professionalId,
       startTime,
@@ -88,4 +95,37 @@ export async function updateBookingStatus(id: string, status: 'confirmed' | 'can
   }
 
   revalidatePath('/dashboard/reservas')
+}
+
+export async function getBookingsForProfessional(professionalId: string) {
+  const { tenantId } = await requireTenantId()
+  const bookings = await prisma.booking.findMany({
+    where: { tenantId, professionalId },
+    select: { id: true, clientName: true, serviceName: true, startTime: true, endTime: true, status: true },
+    orderBy: { startTime: 'asc' },
+  })
+  return bookings.map((b) => ({
+    ...b,
+    startTime: b.startTime.toISOString(),
+    endTime: b.endTime.toISOString(),
+    status: b.status as string,
+  }))
+}
+
+export async function getBookingsForClient(clientEmail: string | null, clientNameFallback: string | null) {
+  const { tenantId } = await requireTenantId()
+  const where = clientEmail
+    ? { tenantId, clientEmail }
+    : { tenantId, clientEmail: null as string | null, clientName: clientNameFallback! }
+  const bookings = await prisma.booking.findMany({
+    where,
+    select: { id: true, serviceName: true, startTime: true, endTime: true, status: true },
+    orderBy: { startTime: 'asc' },
+  })
+  return bookings.map((b) => ({
+    ...b,
+    startTime: b.startTime.toISOString(),
+    endTime: b.endTime.toISOString(),
+    status: b.status as string,
+  }))
 }
