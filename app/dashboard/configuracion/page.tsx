@@ -5,11 +5,12 @@ import PageHeader from '../_components/PageHeader'
 import TenantSettingsForm from './_components/TenantSettingsForm'
 import EmailTemplatesForm from './_components/EmailTemplatesForm'
 import ConfigTabs from './_components/ConfigTabs'
+import IntegrationsSection from './_components/IntegrationsSection'
 
 export default async function ConfiguracionPage() {
-  const { tenantId } = await requireTenantId()
+  const { tenantId, userId } = await requireTenantId()
 
-  const [tenant, emailTemplates] = await Promise.all([
+  const [tenant, emailTemplates, currentUser] = await Promise.all([
     prisma.tenant.findUnique({
       where: { id: tenantId },
       select: { name: true, slug: true, phone: true, description: true, openTime: true, closeTime: true },
@@ -18,12 +19,17 @@ export default async function ConfiguracionPage() {
       where: { tenantId },
       select: { type: true, subject: true, body: true },
     }),
+    prisma.user.findUnique({
+      where: { id: userId },
+      select: { googleRefreshToken: true },
+    }),
   ])
 
   if (!tenant) notFound()
 
   const inviteTemplate = emailTemplates.find((t) => t.type === 'invite') ?? null
   const bookingTemplate = emailTemplates.find((t) => t.type === 'booking_confirmation') ?? null
+  const googleConnected = !!currentUser?.googleRefreshToken
 
   return (
     <div className="px-4 py-6 sm:px-8 sm:py-8 max-w-2xl mx-auto">
@@ -31,6 +37,7 @@ export default async function ConfiguracionPage() {
       <ConfigTabs
         general={<TenantSettingsForm tenant={tenant} />}
         emails={<EmailTemplatesForm inviteTemplate={inviteTemplate} bookingTemplate={bookingTemplate} />}
+        integraciones={<IntegrationsSection connected={googleConnected} />}
       />
     </div>
   )

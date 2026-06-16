@@ -2,6 +2,7 @@
 import { revalidatePath } from 'next/cache'
 import { requireTenantId } from '@/app/lib/dal'
 import { prisma } from '@/lib/prisma'
+import { createCalendarEvent, deleteCalendarEvent } from '@/app/lib/googleCalendar'
 
 type BookingState = { error?: string; success?: boolean } | undefined
 
@@ -31,7 +32,7 @@ export async function createBooking(state: BookingState, formData: FormData): Pr
     return { error: 'La hora de fin debe ser posterior al inicio.' }
   }
 
-  await prisma.booking.create({
+  const booking = await prisma.booking.create({
     data: {
       tenantId,
       clientName,
@@ -44,6 +45,27 @@ export async function createBooking(state: BookingState, formData: FormData): Pr
     },
   })
 
+  try {
+    const summary = serviceName ? `${serviceName} — ${clientName}` : clientName
+    const description = [clientPhone && `Tel: ${clientPhone}`, notes].filter(Boolean).join('\n') || null
+    const calendarEvent = { summary, description, startTime, endTime }
+
+    // Try professional's calendar first, fall back to any tenant admin with Google connected
+    let eventId = professionalId ? await createCalendarEvent(professionalId, calendarEvent) : null
+    if (!eventId) {
+      const adminWithCalendar = await prisma.user.findFirst({
+        where: { tenantId, role: 'admin', googleRefreshToken: { not: null } },
+        select: { id: true },
+      })
+      if (adminWithCalendar) eventId = await createCalendarEvent(adminWithCalendar.id, calendarEvent)
+    }
+    if (eventId) {
+      await prisma.booking.update({ where: { id: booking.id }, data: { googleCalendarEventId: eventId } })
+    }
+  } catch (err) {
+    console.error('[google-calendar] createCalendarEvent failed:', err)
+  }
+
   revalidatePath('/dashboard/reservas')
   return { success: true }
 }
@@ -51,10 +73,19 @@ export async function createBooking(state: BookingState, formData: FormData): Pr
 export async function updateBookingStatus(id: string, status: 'confirmed' | 'cancelled' | 'completed') {
   const { tenantId } = await requireTenantId()
 
-  await prisma.booking.updateMany({
-    where: { id, tenantId },
-    data: { status },
-  })
+  const booking = await prisma.booking.findFirst({ where: { id, tenantId } })
+  if (!booking) return
+
+  await prisma.booking.update({ where: { id }, data: { status } })
+
+  if (status === 'cancelled' && booking.professionalId && booking.googleCalendarEventId) {
+    try {
+      await deleteCalendarEvent(booking.professionalId, booking.googleCalendarEventId)
+      await prisma.booking.update({ where: { id }, data: { googleCalendarEventId: null } })
+    } catch {
+      // Calendar sync failure is non-fatal
+    }
+  }
 
   revalidatePath('/dashboard/reservas')
 }
