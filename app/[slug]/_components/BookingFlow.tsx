@@ -77,10 +77,14 @@ function PickerCard({ onClick, children }: { onClick: () => void; children: Reac
 
 export default function BookingFlow({
   tenant,
+  slug,
+  hasEvents,
   services,
   professionals,
 }: {
   tenant: TenantInfo
+  slug: string
+  hasEvents: boolean
   services: Service[]
   professionals: Professional[]
 }) {
@@ -260,12 +264,20 @@ export default function BookingFlow({
               {tenant.name[0].toUpperCase()}
             </div>
           )}
-          <div>
+          <div className="flex-1 min-w-0">
             <p className="text-sm font-semibold text-zinc-900 leading-tight">{tenant.name}</p>
             {tenant.description && (
               <p className="text-xs text-zinc-500 leading-tight">{tenant.description}</p>
             )}
           </div>
+          {hasEvents && (
+            <a
+              href={`/${slug}/eventos`}
+              className="flex-shrink-0 text-xs font-medium text-zinc-600 hover:text-zinc-900 border border-zinc-200 rounded-lg px-2.5 py-1.5 hover:border-zinc-300 transition"
+            >
+              Eventos
+            </a>
+          )}
         </div>
       </header>
 

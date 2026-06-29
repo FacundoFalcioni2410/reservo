@@ -53,11 +53,18 @@ export default async function PublicBookingPage({
     }),
   ])
 
+  const hasEvents = await prisma.event.count({ where: { tenantId: tenant.id, isActive: true } }).then((c) => c > 0)
+
   if (professionals.length === 0) {
     return (
       <div className="min-h-screen bg-zinc-50 flex flex-col items-center justify-center gap-2 px-4 text-center">
         <p className="text-base font-semibold text-zinc-900">{tenant.name}</p>
         <p className="text-sm text-zinc-400">Este negocio no tiene turnos disponibles por el momento.</p>
+        {hasEvents && (
+          <a href={`/${slug}/eventos`} className="mt-2 text-sm font-medium text-zinc-900 underline underline-offset-2">
+            Ver eventos
+          </a>
+        )}
       </div>
     )
   }
@@ -65,6 +72,8 @@ export default async function PublicBookingPage({
   return (
     <BookingFlow
       tenant={tenant}
+      slug={slug}
+      hasEvents={hasEvents}
       services={services.map((s) => ({ ...s, price: s.price !== null ? Number(s.price) : null, duration: s.duration }))}
       professionals={professionals.map((p) => ({
         id: p.id,
