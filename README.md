@@ -1,36 +1,82 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Reservo
 
-## Getting Started
+Appointment scheduling platform for service businesses. Each tenant gets a public booking page where clients can self-book, while admins and professionals manage everything from a shared dashboard.
 
-First, run the development server:
+## What it does
+
+- **Public booking page** — clients visit `/{slug}`, pick a service, professional, and time slot, and book without an account
+- **Admin dashboard** — weekly calendar view, booking management, client history, professional/branch/service configuration
+- **Professional portal** — each professional logs in to see only their own schedule and clients
+- **Events** — recurring or one-off group events with attendee registration, confirmation tokens, and waitlist support
+- **Google Calendar sync** — bookings and event occurrences sync automatically to each professional's calendar
+- **Email notifications** — confirmation emails on booking and event registration, customizable per tenant via templates
+- **Multi-branch** — branches with independent working hours that inherit from the tenant when not overridden
+
+## Tech stack
+
+- **Next.js 16** (App Router) with React 19
+- **PostgreSQL** via Prisma ORM (`@prisma/adapter-pg`)
+- **Tailwind CSS v4**
+- **Resend** for transactional email
+- **Google Calendar API** for calendar sync
+- **Sentry** for error tracking
+
+## Getting started
+
+**Prerequisites:** Node.js 20+, PostgreSQL database
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Copy the environment file and fill in the values:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```bash
+cp .env.example .env
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Required environment variables:
 
-## Learn More
+```
+DATABASE_URL=postgresql://...
+JWT_SECRET=...
+RESEND_API_KEY=...
+GOOGLE_CLIENT_ID=...
+GOOGLE_CLIENT_SECRET=...
+NEXT_PUBLIC_BASE_URL=http://localhost:3000
+```
 
-To learn more about Next.js, take a look at the following resources:
+Run migrations and start the dev server:
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```bash
+npx prisma migrate deploy
+npm run dev
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Open [http://localhost:3000](http://localhost:3000).
 
-## Deploy on Vercel
+## Project structure
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+```
+app/
+  page.tsx                  # Landing page
+  [slug]/                   # Public booking and event pages
+  dashboard/                # Admin and professional dashboards
+    bookings/               # Calendar + booking list
+    professionals/          # Team management
+    services/               # Service catalog
+    branches/               # Branch management
+    clients/                # Client history
+    settings/               # Tenant config, email templates, integrations
+    eventos/                # Event management
+  (auth)/                   # Login, signup, invite flows
+  actions/                  # Server actions
+  lib/                      # Shared utilities (session, email, ICS, etc.)
+prisma/
+  schema.prisma
+  migrations/
+```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Multi-tenancy
+
+Every business is a `Tenant` with a unique `slug`. All data (users, bookings, services, events) is scoped to a tenant. The admin creates the tenant on signup; professionals are invited by email and set their own password via a token link.
